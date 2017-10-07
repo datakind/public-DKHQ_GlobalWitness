@@ -1,0 +1,7 @@
+# Files starting with "." except .gitignore.
+.*
+!.gitignore
+
+# Python compiled files.
+.pyo
+.pyc
