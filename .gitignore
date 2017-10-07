@@ -3,5 +3,5 @@
 !.gitignore
 
 # Python compiled files.
-.pyo
-.pyc
+*.pyo
+*.pyc
