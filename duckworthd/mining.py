@@ -18,6 +18,7 @@ import pandas as pd
 # Default directory containing images.
 DEFAULT_IMAGE_ROOT = '/workspace/lab/data_s3/mines_ipis'
 
+# Fusion Table ID containing polygons around mining sites.
 DEFAULT_IPIS_MINING_POLYGONS = 'ft:1HG3R3cebqMp2yK0cOimTL7wLnh41c1DH24GyWQg1'
 
 # Images with 4 axes. The first two are typical for images -- x, y. The
@@ -70,14 +71,27 @@ def load_image(img_metadata, image_root=None):
 
 
 def load_image_mask(img_metadata, ipis_mining_sites=None, ipis_mining_polygons=None, image_root=None):
-    """Load binary mask labeling pixels as "mining" or "not mining"."""
+    """Load binary mask labeling pixels as "mining" or "not mining".
+
+    Args:
+      img_metadata: pd.Series from a metadata.json file.
+      ipis_mining_sites: FeatureCollection GeoJSON dict containing all IPIS
+        mining site locations as Points.
+      ipis_mining_polygons: string. Google Fusion Table ID containing polygons
+        for IPIS mining sites.
+      image_root: string. unused?
+
+    Returns:
+      numpy array of shape [100, 100] with values {0, 1}, where 0 == no mine
+      and 1 == mine, centered at the location described by img_metadata.
+    """
     # Reduce entire dataset to a single boolean mask based on the "mine"
     # property of each polygon.
     ipis_mining_polygons = ipis_mining_polygons or DEFAULT_IPIS_MINING_POLYGONS
     ipis_mining_polygons = earth_engine.FeatureCollection(ipis_mining_polygons)
     poly_image = ipis_mining_polygons.reduceToImage(
         properties=['mine'],
-        reducer=earth_engine.Reducer.first())
+        reducer=earth_engine.Reducer.first()) # earth_engine.Image() type
 
     # Get Point corresponding to this image from IPIS dataset.
     roi_id = img_metadata['id']
@@ -89,8 +103,9 @@ def load_image_mask(img_metadata, ipis_mining_sites=None, ipis_mining_polygons=N
 
     # Create a circle around the point with a given buffer size (in meters).
     buff = 1500  # radius of 1500 meters about the point.
-    roi_buff = earth_engine.Geometry.buffer(
-         earth_engine.Geometry.Point(roi['coordinates']), buff).getInfo()
+    roi_point = earth_engine.Geometry.Point(roi['coordinates'])
+    roi_buff = earth_engine.Geometry.buffer(roi_point, buff) # ee.Geometry()
+    roi_buff = roi_buff.getInfo() # GeoJSON dict
 
     # Download image containing circle from Earth Engine.
     scale = 30   # 30 meters/pixel --> circle with 100 pixel diameter.
