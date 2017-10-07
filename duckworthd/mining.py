@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import string
 import tempfile
 import urllib
 import zipfile
@@ -13,6 +14,7 @@ import gdal
 import h5py
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 
 
 # Default directory containing images.
@@ -70,6 +72,72 @@ def load_image(img_metadata, image_root=None):
     return bcolz.open(fname)[:]
 
 
+def geodataframe_to_earthengine(geodataframe):
+    """Converts a GeoDataFrame to an ee.FeatureCollection."""
+    geojson_str = geodataframe.to_json()
+    geojson = json.loads(geojson_str)
+    return geojson_to_earthengine(geojson)
+
+
+def geojson_to_earthengine(geojson):
+    """Converts a GeoJSON dict to an Earth Engine type.
+
+    Args:
+        geojson: GeoJSON-supported object as a nested dict/list/tuple.
+
+    Returns:
+        A matching type that Earth Engine understands (e.g. ee.FeatureCollection, ee.Geometry.Point).
+    """
+    if isinstance(geojson, dict):
+        if 'type' not in geojson:
+            raise ValueError("Not 'type' attribute in geojson: %s" % (geojson,))
+        if geojson['type'] == 'FeatureCollection':
+            return earth_engine.FeatureCollection(
+                geojson_to_earthengine(geojson['features']))
+        elif geojson['type'] == 'Feature':
+            return earth_engine.Feature(
+                geojson_to_earthengine(geojson['geometry']),
+                geojson['properties'])
+        elif geojson['type'] == 'Point':
+            return earth_engine.Geometry.Point(coords=geojson['coordinates'])
+        elif geojson['type'] == 'Polygon':
+            return earth_engine.Geometry.Polygon(
+                coords=geojson['coordinates'],
+                geodesic=geojson.get('geodesic', None))
+        raise ValueError("Unsupported GeoJSON dict type: %s" % geojson['type'])
+    elif isinstance(geojson, list):
+        return [geojson_to_earthengine(element) for element in geojson]
+    elif isinstance(geojson, tuple):
+        return tuple(geojson_to_earthengine(element) for element in geojson)
+    elif type(geojson) in [int, float, str, unicode]:
+        return geojson
+    else:
+        raise ValueError("Unable to parse type: %s" % type(geojson))
+
+
+def to_earthengine_featurecollection(obj):
+  """Converts an object to an ee.FeatureCollection.
+
+  'obj' can be one of:
+  - str: a Fusion Table ID ("ft:xxx")
+  - GeoDataFrame
+  - GeoJSON dict of type 'FeatureCollection'
+  """
+  # If string, load FeatureCollection using Earth Engine.
+  if isinstance(obj, basestring):
+    return earth_engine.FeatureCollection(obj)
+
+  # If GeoDataFrame, convert to ee.FeatureCollection.
+  if isinstance(obj, gpd.GeoDataFrame):
+    return geodataframe_to_earthengine(obj)
+
+  # If GeoJSON, convert to ee.FeatureCollection.
+  if isinstance(obj, dict):
+    assert 'type' in obj
+    assert obj['type'] == 'FeatureCollection'
+    return geojson_to_earthengine(obj)
+
+
 def load_image_mask(img_metadata, ipis_mining_sites=None, ipis_mining_polygons=None, image_root=None):
     """Load binary mask labeling pixels as "mining" or "not mining".
 
@@ -77,19 +145,22 @@ def load_image_mask(img_metadata, ipis_mining_sites=None, ipis_mining_polygons=N
       img_metadata: pd.Series from a metadata.json file.
       ipis_mining_sites: FeatureCollection GeoJSON dict containing all IPIS
         mining site locations as Points.
-      ipis_mining_polygons: string. Google Fusion Table ID containing polygons
-        for IPIS mining sites.
+      ipis_mining_polygons: Object that can be converted to an
+        ee.FeatureCollection. See to_earthengine_featurecollection() for
+        available options. Default's to Sina's Fusion Table.
       image_root: string. unused?
 
     Returns:
-      numpy array of shape [100, 100] with values {0, 1}, where 0 == no mine
-      and 1 == mine, centered at the location described by img_metadata.
+      numpy array of shape [100, 100] with values {0, 1}, where 0.0 == no mine
+      and 1.0 == mine, centered at the location described by img_metadata.
     """
-    # Reduce entire dataset to a single boolean mask based on the "mine"
-    # property of each polygon.
-    ipis_mining_polygons = ipis_mining_polygons or DEFAULT_IPIS_MINING_POLYGONS
-    ipis_mining_polygons = earth_engine.FeatureCollection(ipis_mining_polygons)
-    poly_image = ipis_mining_polygons.reduceToImage(
+    # If None, use the Fusion Table containing mining sites that Sina created.
+    if ipis_mining_sites is None:
+      ipis_mining_polygons = DEFAULT_IPIS_MINING_POLYGONS
+
+    ipis_mining_polygons = to_earthengine_featurecollection(ipis_mining_sites)
+
+    ipis_mining_image = ipis_mining_polygons.reduceToImage(
         properties=['mine'],
         reducer=earth_engine.Reducer.first()) # earth_engine.Image() type
 
@@ -109,29 +180,48 @@ def load_image_mask(img_metadata, ipis_mining_sites=None, ipis_mining_polygons=N
 
     # Download image containing circle from Earth Engine.
     scale = 30   # 30 meters/pixel --> circle with 100 pixel diameter.
-    mask = load_map_tile_containing_roi(poly_image, roi_buff['coordinates'], scale=scale)
+    mask = load_map_tile_containing_roi(ipis_mining_image, roi_buff['coordinates'], scale=scale)
 
     # Some images are 101 x 101, some are 100 x 100. Let's ensure they're all
     # 100 x 100.
     mask = mask[:100, :100]
+    assert mask.shape[2] == 1, 'Mask has > 1 band.'
 
     return mask.reshape(mask.shape[0], mask.shape[1])
 
 
 def load_map_tile_containing_roi(image, roi, scale=30):
-    """Get image containing ROI from Earth Engine"""
+    """Get rasterized image containing ROI from Earth Engine.
+
+    Constructs a rasterized image tile subsetting 'image'. The image is large
+    enough to fully contain the polygon described by 'roi', and will contain
+    one pixel per 'scale' m^2 area.
+
+    Args:
+      image: ee.Image instance. To be used as mask. Must have exactly 1 band.
+      roi: Triple-nested list of floats, where lowest level is [longitude,
+        latitude] pairs from 'coordinates' of a GeoJSON polygon.
+      scale: int. Number of squared meters per pixel.
+
+    Returns:
+      numpy array of shape [N x M x K], where N is width, M is height, and K is
+      number of bands.
+    """
+    # Generate a random filename.
+    filename = ''.join(np.random.choice(list(string.ascii_letters), size=10))
 
     # Download image containing ROI.
-    url = earth_engine.data.makeDownloadUrl(earth_engine.data.getDownloadId({
-        'image': image.serialize(),
-        'scale': '%d' % scale,
-        'filePerBand': 'false',
-        'name': 'data',
-        'region': roi
-    }))
+    url = earth_engine.data.makeDownloadUrl(
+        earth_engine.data.getDownloadId({
+          'image': image.serialize(),
+          'scale': '%d' % scale,
+          'filePerBand': 'false',
+          'name': filename,
+          'region': roi
+        }))
     local_zip, headers = urllib.urlretrieve(url)
     with zipfile.ZipFile(local_zip) as local_zipfile:
-        local_tif_filename = local_zipfile.extract('data.tif', tempfile.mkdtemp())
+        local_tif_filename = local_zipfile.extract(filename + '.tif', tempfile.mkdtemp())
 
     # Read image into memory. Result has shape [x, y, color bands].
     dataset = gdal.Open(local_tif_filename, gdal.GA_ReadOnly)
@@ -252,7 +342,6 @@ def canonicalize_image(img, img_metadata):
 	     "Found %d dates for the following image when 12 were expected. %s"
              % (len(dates), img_metadata))
 
-    date_indices = [img_metadata['dates'].index(date) for date in dates]
     img_metadata['dates'] = dates
 
     # Aggregate across 12 month span (hides cloud cover). Only keep the start
@@ -295,7 +384,7 @@ def canonicalize_image_by_month(img, img_metadata, band=None):
     else:
         raise ValueError("Unrecognized type for argument 'band': %s" % band)
 
-    band_idxs = [img_metadata["bands"].index(band) for band in bands]
+    band_idxs = [img_metadata["bands"].index(b) for b in bands]
     img_band = img[:, :, band_idxs, :]
 
 
