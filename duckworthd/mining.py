@@ -43,17 +43,31 @@ def _get_metadata_file_path(image_root):
     If there are more than one metadata.json files, pick the last one after
     sorting.
     """
+    if not os.path.exists(image_root):
+      raise ValueError(u'%s does not exist. No metadata files found.' % image_root)
+
     filenames = os.listdir(image_root)
     metadata_filenames = [name for name in filenames if 'metadata' in name]
-    assert metadata_filenames, u'No files with "metadata" in name found under ' + image_root
+    if not metadata_filenames:
+      raise ValueError(u'No files with "metadata" in name found under %s' % image_root)
     metadata_filename = list(sorted(metadata_filenames))[-1]
     return os.path.join(image_root, metadata_filename)
 
 
 def load_metadata(image_root=None):
-    """Load JSON file storing image metadata from disk."""
+    """Load JSON file storing image metadata from disk.
+
+    If no JSON file can be found, an empty DataFrame is returned.
+    """
     image_root = image_root or DEFAULT_IMAGE_ROOT
-    with open(_get_metadata_file_path(image_root)) as f:
+
+    try:
+      fpath = _get_metadata_file_path(image_root)
+    except ValueError:
+      return pd.DataFrame(
+          columns=["bands", "collection", "dates", "dim", "fpath", "id"])
+
+    with open(fpath) as f:
         return pd.DataFrame(json.load(f))
 
 
@@ -63,6 +77,15 @@ def save_metadata(image_root, metadata):
         os.makedirs(image_root)
     with open(os.path.join(image_root, "metadata4.json"), "w") as f:
         return metadata.to_json(f)
+
+
+def merge_metadata(old_metadata, new_metadata):
+    """Merge two metadata DataFrames."""
+    # Remove all rows from 'old_metadata' that have the same path as in 'new_metadata'
+    old_metadata = old_metadata[~old_metadata['fpath'].isin(new_metadata['fpath'])]
+
+    # Concatenate new and old together.
+    return pd.concat([old_metadata, new_metadata], ignore_index=True)
 
 
 def load_image(img_metadata, image_root=None):
@@ -235,12 +258,19 @@ def save_images(image_root, images, metadata):
     if not os.path.exists(image_root):
         os.makedirs(image_root)
     for (img, (_, img_metadata)) in zip(images, metadata.iterrows()):
-        fname = os.path.join(image_root, img_metadata['fpath'])
-        dname = os.path.dirname(fname)
-        if not os.path.exists(dname):
-            os.makedirs(dname)
-        c = bcolz.carray(img, rootdir=fname, mode ='w')
-        c.flush()
+        save_image(image_root, img, img_metadata)
+
+
+def save_image(image_root, img, img_metadata):
+    """Store a single image to disk."""
+    if not os.path.exists(image_root):
+        os.makedirs(image_root)
+    fname = os.path.join(image_root, img_metadata['fpath'])
+    dname = os.path.dirname(fname)
+    if not os.path.exists(dname):
+        os.makedirs(dname)
+    c = bcolz.carray(img, rootdir=fname, mode ='w')
+    c.flush()
 
 
 def save_images_with_hdf5(image_root, images, metadata):
