@@ -70,15 +70,18 @@ def git_root(current_dir=None):
             raise ValueError("Could not find parent directory containing .git.")
         result = os.path.dirname(result)
 
+
 def maybe_add_to_sys_path(path):
     """Add 'path' to 'sys.path' if it's not already there."""
     if path in sys.path:
         return
     sys.path.append(path)
 
+
 maybe_add_to_sys_path(git_root())
 
-import ee; ee.Initialize()
+import ee
+ee.Initialize()
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -86,6 +89,8 @@ import shapely
 
 from duckworthd import mining
 
+# Name for this dataset.
+MASK_COLLECTION_NAME = "mining_masks"
 
 # pcodes associated with the mines_ipis250 dataset.
 MINES_IPIS250_PCODES = [
@@ -340,6 +345,7 @@ MINES_IPIS250_PCODES = [
     "codmine00332",
     "codmine00338"]
 
+
 def initialize_logging(loglevel):
     """Set global logging level to 'loglevel'."""
     numeric_level = getattr(logging, loglevel.upper(), None)
@@ -376,147 +382,187 @@ def create_earth_engine_roi(point_as_shapely, buffer_radius_in_meters):
 
 
 def load_feature_collection_from_fusion_table(path):
-  """Load a FeatureCollection from Google Fusion Table."""
-  assert path.startswith("ft:"), "Path is not a Fusion Table location."
-  result_json = ee.FeatureCollection(path).getInfo()
-  return gpd.GeoDataFrame.from_features(result_json)
+    """Load a FeatureCollection from Google Fusion Table."""
+    assert path.startswith("ft:"), "Path is not a Fusion Table location."
+    result_json = ee.FeatureCollection(path).getInfo()
+    return gpd.GeoDataFrame.from_features(result_json)
+
 
 def load_mines_ipis250():
-  """Load mining site masks for 'mines_ipis250' dataset.
+    """Load mining site masks for 'mines_ipis250' dataset.
 
-  Returns:
-    GeoDataFrame containing mining site mask polygons and pcodes.
-  """
-  sinas_mining_site_masks = load_feature_collection_from_fusion_table("ft:1C4cfhvOZjqM6NRXPZjN4cBkCjVi9Ckl-tkYWvaMq")
-  sinas_mining_site_masks = sinas_mining_site_masks[["geometry"]]
-  sinas_mining_site_masks["pcode"] = np.nan
+    Returns:
+      GeoDataFrame containing mining site mask polygons and pcodes.
+    """
+    sinas_mining_site_masks = load_feature_collection_from_fusion_table(
+        "ft:1C4cfhvOZjqM6NRXPZjN4cBkCjVi9Ckl-tkYWvaMq")
+    sinas_mining_site_masks = sinas_mining_site_masks[["geometry"]]
+    sinas_mining_site_masks["pcode"] = np.nan
 
-  # Load pcodes for all mining sites in 'mines_ipis250'. Though we don't have
-  # polygons to match these, we'll add it to 'mining_site_masks' so we can
-  # filter by pcode.
-  sinas_mining_site_pcodes = gpd.GeoDataFrame.from_dict({"pcode": MINES_IPIS250_PCODES})
-  sinas_mining_site_pcodes["geometry"] = np.nan
+    # Load pcodes for all mining sites in 'mines_ipis250'. Though we don't have
+    # polygons to match these, we'll add it to 'mining_site_masks' so we can
+    # filter by pcode.
+    sinas_mining_site_pcodes = gpd.GeoDataFrame.from_dict(
+        {"pcode": MINES_IPIS250_PCODES})
+    sinas_mining_site_pcodes["geometry"] = np.nan
 
-  return pd.concat([sinas_mining_site_masks, sinas_mining_site_pcodes], ignore_index=True)
+    return pd.concat([sinas_mining_site_masks, sinas_mining_site_pcodes], ignore_index=True)
+
+
+def img_already_exists(image_root, vid):
+    """Checks if an image and its metadata are already on disk."""
+    fpath = create_fpath(vid)
+    img_exists = os.path.exists(os.path.join(image_root, fpath))
+
+    metadata = mining.load_metadata(image_root)
+    metadata_exists = np.sum(metadata['fpath'] == fpath) == 1
+
+    return (img_exists and metadata_exists)
+
+
+def create_fpath(vid):
+    """Creates the 'fpath' field for a given image."""
+    return "%d/%s" % (vid, MASK_COLLECTION_NAME)
+
+
+def create_img_metadata(img_shape, vid):
+    """Constructs img_metadata for a single image."""
+    return pd.Series({
+        "bands": ['mask'],
+        "collection": MASK_COLLECTION_NAME,
+
+        # TODO(duckworthd): This should be the date of the satellite image upon
+        # which this mask is based.
+        "dates": ['20171001'],
+
+        "dim": img_shape,
+        "fpath": create_fpath(vid),
+        "id": vid,
+    })
 
 
 def main(args):
-  initialize_logging(args.loglevel)
+    initialize_logging(args.loglevel)
 
-  if args.roi_bounding_box_width % 2 != 0:
-    raise ValueError(
-        "--roi_bounding_box_width needs to be divisible by 2 as it will be used "
-        "as a radius.")
+    if args.roi_bounding_box_width % 2 != 0:
+        raise ValueError(
+            "--roi_bounding_box_width needs to be divisible by 2 as it will be used "
+            "as a radius.")
 
-  if args.roi_bounding_box_width % args.resolution_square_meters != 0:
-    raise ValueError(
-        "--roi_bounding_box_width needs to be divisible by "
-        "--resolution_square_meters.")
+    if args.roi_bounding_box_width % args.resolution_square_meters != 0:
+        raise ValueError(
+            "--roi_bounding_box_width needs to be divisible by "
+            "--resolution_square_meters.")
+    roi_box_dims = (args.roi_bounding_box_width //
+                    args.resolution_square_meters,) * 2
 
-  # Load mining site locations, masks.
-  mining_site_masks = gpd.read_file(args.mining_site_masks_shapefile)
-  mining_site_locations = gpd.read_file(args.mining_site_locations_shapefile)
-  logging.info("Loaded %d mining site locations, %d mining site masks"
-      % (len(mining_site_locations), len(mining_site_masks)))
+    # Load mining site locations, masks.
+    mining_site_masks = gpd.read_file(args.mining_site_masks_shapefile)
+    mining_site_locations = gpd.read_file(args.mining_site_locations_shapefile)
+    logging.info("Loaded %d mining site locations, %d mining site masks"
+                 % (len(mining_site_locations), len(mining_site_masks)))
 
-  # Load Sina's mining site masks for 'mines_ipis250'. This collection lacks 'pcode'.
-  if args.use_mines_ipis250:
-    mining_site_masks = pd.concat([mining_site_masks, load_mines_ipis250()], ignore_index=True)
-    logging.info("Loaded additional mining site masks, locations from 'mines_ipis250'.")
+    # Load Sina's mining site masks for 'mines_ipis250'. This collection lacks 'pcode'.
+    if args.use_mines_ipis250:
+        mining_site_masks = pd.concat(
+            [mining_site_masks, load_mines_ipis250()], ignore_index=True)
+        logging.info(
+            "Loaded additional mining site masks, locations from 'mines_ipis250'.")
 
-  # Filter mining site locations to places we have masks for.
-  #
-  # TODO(duckworthd): Should also grab locations that have been reviewed and
-  # don't have visible mining sites. These locations won't have masks.
-  mining_site_locations = mining_site_locations[
-      mining_site_locations['pcode'].isin(mining_site_masks['pcode'])]
+    # Filter mining site locations to places we have masks for.
+    #
+    # TODO(duckworthd): Should also grab locations that have been reviewed and
+    # don't have visible mining sites. These locations won't have masks.
+    mining_site_locations = mining_site_locations[
+        mining_site_locations['pcode'].isin(mining_site_masks['pcode'])]
 
-  # Depending on the dataset (All Visits vs. Last Visit), we may have multiple rows per location.
-  if mining_site_locations["pcode"].value_counts().max() > 1:
-    logging.info("--mining_site_locations_shapefile contains multiple entries per location. Taking the last.")
-    mining_site_locations = mining_site_locations.groupby("pcode").last()
+    # Depending on the dataset (All Visits vs. Last Visit), we may have multiple rows per location.
+    if mining_site_locations["pcode"].value_counts().max() > 1:
+        logging.info(
+            "--mining_site_locations_shapefile contains multiple entries per location. Taking the last.")
+        mining_site_locations = mining_site_locations.groupby("pcode").last()
 
-  # Construct a binary ee.Image that's 1.0 wherever there's a mine.
-  mining_site_masks_ee = create_earth_engine_mask(mining_site_masks)
+    # Construct a binary ee.Image that's 1.0 wherever there's a mine.
+    mining_site_masks_ee = create_earth_engine_mask(mining_site_masks)
 
-  logging.info("Creating masks for %d mining sites." % len(mining_site_locations))
-  for idx, row in mining_site_locations.iterrows():
-    logging.debug("Loading mask for row %d/%d." % (idx, len(mining_site_locations)))
+    logging.info("Creating masks for %d mining sites." %
+                 len(mining_site_locations))
+    for idx, row in mining_site_locations.reset_index(drop=True).iterrows():
+        logging.debug("Downloading mask for row %d/%d." %
+                      (idx, len(mining_site_locations)))
 
-    # Construct circle around mining site's location.
-    roi = create_earth_engine_roi(row.geometry, args.roi_bounding_box_width / 2)
+        # If this image already exists, don't bother re-downloading it.
+        if img_already_exists(args.output_image_root, row.vid) and not args.force_download:
+            logging.debug("Mask already exists. Skipping.")
+            continue
 
-    # Get coordinates for the circle.
-    roi = roi.coordinates().getInfo()
+        # Construct circle around mining site's location.
+        roi = create_earth_engine_roi(
+            row.geometry, args.roi_bounding_box_width / 2)
 
-    # Construct img.
-    img = mining.load_map_tile_containing_roi(
-        mining_site_masks_ee, roi, scale=args.resolution_square_meters)
-    img = np.reshape(img, [img.shape[0], img.shape[1], img.shape[2], 1])
+        # Get coordinates for the circle.
+        roi = roi.coordinates().getInfo()
 
-    # Construct img metadata.
-    img_metadata = pd.Series({
-      "bands": ['mask'],
-      "collection": 'mining_masks',
+        # Construct img. Ensure that its shape is as expected.
+        img = mining.load_map_tile_containing_roi(
+            mining_site_masks_ee, roi, scale=args.resolution_square_meters)
+        img = img[0:roi_box_dims[0], 0:roi_box_dims[1]]
+        img = np.reshape(img, [img.shape[0], img.shape[1], img.shape[2], 1])
 
-      # TODO(duckworthd): This should be the date of the satellite image upon
-      # which this mask is based.
-      "dates": ['20171001'],
+        # Construct img metadata.
+        img_metadata = create_img_metadata(img.shape, row.vid)
 
-      "dim": img.shape,
-      "fpath": "%d/mining_masks" % row.vid,
-      "id": row.vid,
-    })
+        # TODO(duckworthd): Should save then atomatically move to final destination
+        # to ensure no race conditions.
+        #
+        # Save image.
+        mining.save_image(args.output_image_root, img, img_metadata)
 
-    # Save image
-    mining.save_image(args.output_image_root, img, img_metadata)
-
-    # Load old metadata, add new row for this img, save.
-    metadata = mining.load_metadata(args.output_image_root)
-    metadata = mining.merge_metadata(
-        args.output_image_root,
-        pd.DataFrame.from_records([img_metadata]))
-    mining.save_metadata(args.output_image_root, metadata)
+        # Load old metadata, add new row for this img, save.
+        metadata = mining.load_metadata(args.output_image_root)
+        metadata = mining.merge_metadata(
+            metadata, pd.DataFrame.from_records([img_metadata]))
+        mining.save_metadata(args.output_image_root, metadata)
 
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()
 
-  # Required arguments.
-  parser.add_argument(
-      '--mining_site_masks_shapefile',
-      type=str, required=True,
-      help='Path to shapefile containing mining site masks. Must contain "pcode" column that identifies which mine each mask belongs to.')
-  parser.add_argument(
-      '--mining_site_locations_shapefile',
-      type=str, required=True,
-      help='Path to shapefile containing mining site locations. Must contain "pcode" column that uniquely identifies each mine and "vid" that uniquely identifies each mine visit.')
-  parser.add_argument(
-      '--output_image_root',
-      type=str, required=True,
-      help='Path to directory to write masks under.')
+    # Required arguments.
+    parser.add_argument(
+        '--mining_site_masks_shapefile',
+        type=str, required=True,
+        help='Path to shapefile containing mining site masks. Must contain "pcode" column that identifies which mine each mask belongs to.')
+    parser.add_argument(
+        '--mining_site_locations_shapefile',
+        type=str, required=True,
+        help='Path to shapefile containing mining site locations. Must contain "pcode" column that uniquely identifies each mine and "vid" that uniquely identifies each mine visit.')
+    parser.add_argument(
+        '--output_image_root',
+        type=str, required=True,
+        help='Path to directory to write masks under.')
 
-  # Optional arguments.
-  parser.add_argument(
-      '--roi_bounding_box_width',
-      type=int,
-      default=3000,
-      help='Width of square bounding box around mining site location to capture.')
-  parser.add_argument(
-      '--resolution_square_meters',
-      type=int,
-      default=30,
-      help='Number of square meters per pixel in resulting mask.')
-  parser.add_argument(
-      '--loglevel',
-      type=str,
-      default='INFO',
-      help='Default log level (DEBUG, INFO, WARNING, ERROR).')
-  parser.add_argument(
-      '--use_mines_ipis250',
-      type=bool,
-      default=True,
-      help='If True, Also include masks and ROIs from the "mines_ipis250" dataset.')
+    # Optional arguments.
+    parser.add_argument(
+        '--roi_bounding_box_width',
+        type=int, default=3000,
+        help='Width of square bounding box around mining site location to capture.')
+    parser.add_argument(
+        '--resolution_square_meters',
+        type=int, default=30,
+        help='Number of square meters per pixel in resulting mask.')
+    parser.add_argument(
+        '--loglevel',
+        type=str, default='INFO',
+        help='Default log level (DEBUG, INFO, WARNING, ERROR).')
+    parser.add_argument(
+        '--use_mines_ipis250',
+        action="store_true",
+        help='If True, Also include masks and ROIs from the "mines_ipis250" dataset.')
+    parser.add_argument(
+        '--force_download',
+        action="store_true",
+        help='If True, download mask again even if it already exists.')
 
-  args = parser.parse_args()
-  main(args)
+    args = parser.parse_args()
+    main(args)

@@ -9,7 +9,8 @@ import zipfile
 
 from matplotlib import pyplot as plt
 import bcolz
-import ee as earth_engine; earth_engine.Initialize()
+import ee as earth_engine
+earth_engine.Initialize()
 import gdal
 import h5py
 import numpy as np
@@ -44,12 +45,14 @@ def _get_metadata_file_path(image_root):
     sorting.
     """
     if not os.path.exists(image_root):
-      raise ValueError(u'%s does not exist. No metadata files found.' % image_root)
+        raise ValueError(
+            u'%s does not exist. No metadata files found.' % image_root)
 
     filenames = os.listdir(image_root)
     metadata_filenames = [name for name in filenames if 'metadata' in name]
     if not metadata_filenames:
-      raise ValueError(u'No files with "metadata" in name found under %s' % image_root)
+        raise ValueError(
+            u'No files with "metadata" in name found under %s' % image_root)
     metadata_filename = list(sorted(metadata_filenames))[-1]
     return os.path.join(image_root, metadata_filename)
 
@@ -62,10 +65,10 @@ def load_metadata(image_root=None):
     image_root = image_root or DEFAULT_IMAGE_ROOT
 
     try:
-      fpath = _get_metadata_file_path(image_root)
+        fpath = _get_metadata_file_path(image_root)
     except ValueError:
-      return pd.DataFrame(
-          columns=["bands", "collection", "dates", "dim", "fpath", "id"])
+        return pd.DataFrame(
+            columns=["bands", "collection", "dates", "dim", "fpath", "id"])
 
     with open(fpath) as f:
         return pd.DataFrame(json.load(f))
@@ -82,7 +85,8 @@ def save_metadata(image_root, metadata):
 def merge_metadata(old_metadata, new_metadata):
     """Merge two metadata DataFrames."""
     # Remove all rows from 'old_metadata' that have the same path as in 'new_metadata'
-    old_metadata = old_metadata[~old_metadata['fpath'].isin(new_metadata['fpath'])]
+    old_metadata = old_metadata[~old_metadata['fpath'].isin(
+        new_metadata['fpath'])]
 
     # Concatenate new and old together.
     return pd.concat([old_metadata, new_metadata], ignore_index=True)
@@ -139,26 +143,26 @@ def geojson_to_earthengine(geojson):
 
 
 def to_earthengine_featurecollection(obj):
-  """Converts an object to an ee.FeatureCollection.
+    """Converts an object to an ee.FeatureCollection.
 
-  'obj' can be one of:
-  - str: a Fusion Table ID ("ft:xxx")
-  - GeoDataFrame
-  - GeoJSON dict of type 'FeatureCollection'
-  """
-  # If string, load FeatureCollection using Earth Engine.
-  if isinstance(obj, basestring):
-    return earth_engine.FeatureCollection(obj)
+    'obj' can be one of:
+    - str: a Fusion Table ID ("ft:xxx")
+    - GeoDataFrame
+    - GeoJSON dict of type 'FeatureCollection'
+    """
+    # If string, load FeatureCollection using Earth Engine.
+    if isinstance(obj, basestring):
+        return earth_engine.FeatureCollection(obj)
 
-  # If GeoDataFrame, convert to ee.FeatureCollection.
-  if isinstance(obj, gpd.GeoDataFrame):
-    return geodataframe_to_earthengine(obj)
+    # If GeoDataFrame, convert to ee.FeatureCollection.
+    if isinstance(obj, gpd.GeoDataFrame):
+        return geodataframe_to_earthengine(obj)
 
-  # If GeoJSON, convert to ee.FeatureCollection.
-  if isinstance(obj, dict):
-    assert 'type' in obj
-    assert obj['type'] == 'FeatureCollection'
-    return geojson_to_earthengine(obj)
+    # If GeoJSON, convert to ee.FeatureCollection.
+    if isinstance(obj, dict):
+        assert 'type' in obj
+        assert obj['type'] == 'FeatureCollection'
+        return geojson_to_earthengine(obj)
 
 
 def load_image_mask(img_metadata, ipis_mining_sites=None, ipis_mining_polygons=None, image_root=None):
@@ -179,13 +183,13 @@ def load_image_mask(img_metadata, ipis_mining_sites=None, ipis_mining_polygons=N
     """
     # If None, use the Fusion Table containing mining sites that Sina created.
     if ipis_mining_sites is None:
-      ipis_mining_polygons = DEFAULT_IPIS_MINING_POLYGONS
+        ipis_mining_polygons = DEFAULT_IPIS_MINING_POLYGONS
 
     ipis_mining_polygons = to_earthengine_featurecollection(ipis_mining_sites)
 
     ipis_mining_image = ipis_mining_polygons.reduceToImage(
         properties=['mine'],
-        reducer=earth_engine.Reducer.first()) # earth_engine.Image() type
+        reducer=earth_engine.Reducer.first())  # earth_engine.Image() type
 
     # Get Point corresponding to this image from IPIS dataset.
     roi_id = img_metadata['id']
@@ -194,16 +198,16 @@ def load_image_mask(img_metadata, ipis_mining_sites=None, ipis_mining_polygons=N
     roi = ipis_mining_sites['features'][roi_id]['geometry']
     assert roi['type'] == 'Point'
 
-
     # Create a circle around the point with a given buffer size (in meters).
     buff = 1500  # radius of 1500 meters about the point.
     roi_point = earth_engine.Geometry.Point(roi['coordinates'])
-    roi_buff = earth_engine.Geometry.buffer(roi_point, buff) # ee.Geometry()
-    roi_buff = roi_buff.getInfo() # GeoJSON dict
+    roi_buff = earth_engine.Geometry.buffer(roi_point, buff)  # ee.Geometry()
+    roi_buff = roi_buff.getInfo()  # GeoJSON dict
 
     # Download image containing circle from Earth Engine.
     scale = 30   # 30 meters/pixel --> circle with 100 pixel diameter.
-    mask = load_map_tile_containing_roi(ipis_mining_image, roi_buff['coordinates'], scale=scale)
+    mask = load_map_tile_containing_roi(
+        ipis_mining_image, roi_buff['coordinates'], scale=scale)
 
     # Some images are 101 x 101, some are 100 x 100. Let's ensure they're all
     # 100 x 100.
@@ -236,19 +240,21 @@ def load_map_tile_containing_roi(image, roi, scale=30):
     # Download image containing ROI.
     url = earth_engine.data.makeDownloadUrl(
         earth_engine.data.getDownloadId({
-          'image': image.serialize(),
-          'scale': '%d' % scale,
-          'filePerBand': 'false',
-          'name': filename,
-          'region': roi
+            'image': image.serialize(),
+            'scale': '%d' % scale,
+            'filePerBand': 'false',
+            'name': filename,
+            'region': roi
         }))
     local_zip, headers = urllib.urlretrieve(url)
     with zipfile.ZipFile(local_zip) as local_zipfile:
-        local_tif_filename = local_zipfile.extract(filename + '.tif', tempfile.mkdtemp())
+        local_tif_filename = local_zipfile.extract(
+            filename + '.tif', tempfile.mkdtemp())
 
     # Read image into memory. Result has shape [x, y, color bands].
     dataset = gdal.Open(local_tif_filename, gdal.GA_ReadOnly)
-    bands = [dataset.GetRasterBand(i + 1).ReadAsArray() for i in range(dataset.RasterCount)]
+    bands = [dataset.GetRasterBand(i + 1).ReadAsArray()
+             for i in range(dataset.RasterCount)]
     return np.stack(bands, axis=2)
 
 
@@ -269,7 +275,7 @@ def save_image(image_root, img, img_metadata):
     dname = os.path.dirname(fname)
     if not os.path.exists(dname):
         os.makedirs(dname)
-    c = bcolz.carray(img, rootdir=fname, mode ='w')
+    c = bcolz.carray(img, rootdir=fname, mode='w')
     c.flush()
 
 
@@ -285,7 +291,8 @@ def save_images_with_hdf5(image_root, images, metadata):
     initial_images_shape = (len(images),) + image_shape
     max_images_shape = (None,) + image_shape
     with h5py.File(os.path.join(image_root, "images.h5"), "w") as h5f:
-        dataset = h5f.create_dataset("images" , initial_images_shape, maxshape=max_images_shape)
+        dataset = h5f.create_dataset(
+            "images", initial_images_shape, maxshape=max_images_shape)
 
         # Write images into space.
         for i, image in enumerate(images):
@@ -340,7 +347,7 @@ def plot_image(image, metadata=None, band=None, ax=None, cmap='gray'):
 
     # Aggregate over time.
     if len(image.shape) == 4:
-    	image = np.nanmedian(image, axis=TIME_AXIS)
+        image = np.nanmedian(image, axis=TIME_AXIS)
 
     # Select only the bands requested.
     if len(image.shape) == 3:
@@ -369,8 +376,8 @@ def canonicalize_image(img, img_metadata):
 
     if len(dates) < 12:
         raise ValueError(
-	     "Found %d dates for the following image when 12 were expected. %s"
-             % (len(dates), img_metadata))
+            "Found %d dates for the following image when 12 were expected. %s"
+            % (len(dates), img_metadata))
 
     img_metadata['dates'] = dates
 
@@ -384,7 +391,7 @@ def canonicalize_image(img, img_metadata):
              if re.search('^B\d+$', band) is not None]
     band_indices = [img_metadata['bands'].index(band) for band in bands]
 
-    img = img[:,:, band_indices]
+    img = img[:, :, band_indices]
     img_metadata['bands'] = bands
 
     img_metadata["dim"] = img.shape
@@ -398,8 +405,8 @@ def canonicalize_image_by_month(img, img_metadata, band=None):
     Args:
         img: numpy array, shape [height, width, num color bands, num dates].
         img_metadata: pandas Series. Contains 'bands' and 'dates' entries.
-	band: None, string, or list of strings. If None, output all color
-	    bands. If string, output a single color band, if list of strings,
+        band: None, string, or list of strings. If None, output all color
+            bands. If string, output a single color band, if list of strings,
             output one color band per string.
     """
     assert len(img.shape) == 4, "img must be [width, height color band, time]."
@@ -417,7 +424,6 @@ def canonicalize_image_by_month(img, img_metadata, band=None):
     band_idxs = [img_metadata["bands"].index(b) for b in bands]
     img_band = img[:, :, band_idxs, :]
 
-
     # Extract month out of each date (YYYYMMDD string)
     dates = pd.DataFrame({"dates": img_metadata['dates']})
     dates["month"] = dates["dates"].str.slice(4, 6)
@@ -430,8 +436,8 @@ def canonicalize_image_by_month(img, img_metadata, band=None):
         time_idxs = list(group.index)
         img_month = img_band[:, :, :, time_idxs]
 
-	# Take median pixel intensity over time.
-        result_img[:, :, :, int(month)-1] = np.nanmedian(
+        # Take median pixel intensity over time.
+        result_img[:, :, :, int(month) - 1] = np.nanmedian(
             img_month, axis=[TIME_AXIS])
 
     # Construct new metadata. We'll use the first date for each month in the
@@ -464,10 +470,12 @@ def merge_canonical_image_and_mask(canonical_img, mask, img_metadata):
 
 
 def plot_monthly_image(img, img_metadata):
-    assert len(img.shape) == 4, "img shape must be [height, width, color band, month]"
+    assert len(
+        img.shape) == 4, "img shape must be [height, width, color band, month]"
     assert img.shape[3] == 12, "img must have 1 entry per month for every color band."
 
-    months = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sept", "Oct", "Nov", "Dec"]
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "June",
+              "July", "Aug", "Sept", "Oct", "Nov", "Dec"]
     num_cols = len(img_metadata["bands"])
     num_rows = len(months)
     plt.figure(figsize=(2 * num_cols, 2 * num_rows))
@@ -475,4 +483,4 @@ def plot_monthly_image(img, img_metadata):
         for j in range(num_cols):
             ax = plt.subplot(num_rows, num_cols, i * num_cols + j + 1)
             ax.set_title("%s/%s" % (months[i], img_metadata["bands"][j]))
-            plot_image(img[:,:,j,i])
+            plot_image(img[:, :, j, i])
