@@ -87,6 +87,259 @@ import shapely
 from duckworthd import mining
 
 
+# pcodes associated with the mines_ipis250 dataset.
+MINES_IPIS250_PCODES = [
+    "codmine00862",
+    "codmine00901",
+    "codmine00906",
+    "codmine01158",
+    "codmine01671",
+    "codmine01696",
+    "codmine01740",
+    "codmine01756",
+    "codmine01771",
+    "codmine01784",
+    "codmine01782",
+    "codmine01786",
+    "codmine01788",
+    "codmine01792",
+    "codmine00037",
+    "codmine00038",
+    "codmine00039",
+    "codmine00040",
+    "codmine00041",
+    "codmine00043",
+    "codmine00044",
+    "codmine00051",
+    "codmine00085",
+    "codmine00090",
+    "codmine00098",
+    "codmine00099",
+    "codmine00623",
+    "codmine01021",
+    "codmine01097",
+    "codmine01098",
+    "codmine01106",
+    "codmine01206",
+    "codmine01394",
+    "codmine01395",
+    "codmine01402",
+    "codmine01406",
+    "codmine01408",
+    "codmine01426",
+    "codmine01433",
+    "codmine01435",
+    "codmine01461",
+    "codmine01466",
+    "codmine01467",
+    "codmine01468",
+    "codmine01484",
+    "codmine01514",
+    "codmine01525",
+    "codmine01527",
+    "codmine01531",
+    "codmine01533",
+    "codmine01545",
+    "codmine01558",
+    "codmine01564",
+    "codmine01570",
+    "codmine01574",
+    "codmine01585",
+    "codmine01586",
+    "codmine01588",
+    "codmine01589",
+    "codmine01596",
+    "codmine01599",
+    "codmine01600",
+    "codmine01601",
+    "codmine01603",
+    "codmine01612",
+    "codmine01613",
+    "codmine01617",
+    "codmine01618",
+    "codmine01619",
+    "codmine01627",
+    "codmine01631",
+    "codmine01968",
+    "codmine02599",
+    "codmine00227",
+    "codmine00643",
+    "codmine00180",
+    "codmine00646",
+    "codmine00182",
+    "codmine00507",
+    "codmine00833",
+    "codmine00651",
+    "codmine00514",
+    "codmine00658",
+    "codmine00532",
+    "codmine00534",
+    "codmine00535",
+    "codmine00004",
+    "codmine00198",
+    "codmine00195",
+    "codmine00202",
+    "codmine00203",
+    "codmine00204",
+    "codmine00205",
+    "codmine00206",
+    "codmine00207",
+    "codmine00338",
+    "codmine00333",
+    "codmine00332",
+    "codmine00209",
+    "codmine00211",
+    "codmine00214",
+    "codmine00215",
+    "codmine00016",
+    "codmine00235",
+    "codmine00236",
+    "codmine01028",
+    "codmine01029",
+    "codmine01032",
+    "codmine01031",
+    "codmine01019",
+    "codmine01021",
+    "codmine01048",
+    "codmine00367",
+    "codmine00370",
+    "codmine00373",
+    "codmine00372",
+    "codmine00537",
+    "codmine00542",
+    "codmine00241",
+    "codmine00244",
+    "codmine00245",
+    "codmine00248",
+    "codmine00251",
+    "codmine00041",
+    "codmine00037",
+    "codmine00038",
+    "codmine00046",
+    "codmine00045",
+    "codmine00044",
+    "codmine00050",
+    "codmine00051",
+    "codmine00047",
+    "codmine00048",
+    "codmine00056",
+    "codmine00055",
+    "codmine00054",
+    "codmine00053",
+    "codmine00057",
+    "codmine00068",
+    "codmine00067",
+    "codmine00066",
+    "codmine00065",
+    "codmine00064",
+    "codmine00073",
+    "codmine00072",
+    "codmine00075",
+    "codmine00074",
+    "codmine00076",
+    "codmine00080",
+    "codmine00079",
+    "codmine00078",
+    "codmine00077",
+    "codmine00379",
+    "codmine00685",
+    "codmine00558",
+    "codmine00556",
+    "codmine00396",
+    "codmine00557",
+    "codmine00699",
+    "codmine00698",
+    "codmine00398",
+    "codmine00399",
+    "codmine00401",
+    "codmine00083",
+    "codmine00973",
+    "codmine00092",
+    "codmine00097",
+    "codmine00098",
+    "codmine00101",
+    "codmine00405",
+    "codmine00407",
+    "codmine01054",
+    "codmine00102",
+    "codmine00406",
+    "codmine00707",
+    "codmine02526",
+    "codmine00415",
+    "codmine00107",
+    "codmine00277",
+    "codmine00996",
+    "codmine00593",
+    "codmine01013",
+    "codmine00445",
+    "codmine00151",
+    "codmine00174",
+    "codmine00297",
+    "codmine00788",
+    "codmine00468",
+    "codmine00467",
+    "codmine00466",
+    "codmine00475",
+    "codmine00474",
+    "codmine00480",
+    "codmine00821",
+    "codmine00996",
+    "codmine00985",
+    "codmine01321",
+    "codmine01299",
+    "codmine00055",
+    "codmine01143",
+    "codmine00102",
+    "codmine01208",
+    "codmine00101",
+    "codmine00099",
+    "codmine01206",
+    "codmine00061",
+    "codmine01171",
+    "codmine00062",
+    "codmine00065",
+    "codmine00067",
+    "codmine00073",
+    "codmine00075",
+    "codmine00396",
+    "codmine01155",
+    "codmine01251",
+    "codmine01200",
+    "codmine01174",
+    "codmine01138",
+    "codmine01140",
+    "codmine01137",
+    "codmine01021",
+    "codmine01019",
+    "codmine01193",
+    "codmine01805",
+    "codmine01024",
+    "codmine01835",
+    "codmine01029",
+    "codmine01175",
+    "codmine01796",
+    "codmine01855",
+    "codmine01807",
+    "codmine01831",
+    "codmine01834",
+    "codmine01800",
+    "codmine01801",
+    "codmine01851",
+    "codmine00833",
+    "codmine01964",
+    "codmine00041",
+    "codmine02138",
+    "codmine01925",
+    "codmine01894",
+    "codmine01869",
+    "codmine01893",
+    "codmine01888",
+    "codmine00696",
+    "codmine02162",
+    "codmine00906",
+    "codmine00332",
+    "codmine00338"]
+
 def initialize_logging(loglevel):
     """Set global logging level to 'loglevel'."""
     numeric_level = getattr(logging, loglevel.upper(), None)
@@ -98,6 +351,11 @@ def initialize_logging(loglevel):
 def create_earth_engine_mask(geodataframe, key=None):
     """Construct ee.Image mask based on a GeoDataFrame's contents."""
     geodataframe = geodataframe.copy()
+
+    # Some mining site locations may have an undefined geometry. Filter those
+    # out.
+    geodataframe = geodataframe[pd.notnull(geodataframe.geometry)]
+
     if key is None:
         key = 'MASK_VALUE'
         geodataframe[key] = 1.0
@@ -115,6 +373,31 @@ def create_earth_engine_roi(point_as_shapely, buffer_radius_in_meters):
     buffer_as_earth_engine = ee.Geometry.buffer(
         point_as_earth_engine, buffer_radius_in_meters)
     return buffer_as_earth_engine
+
+
+def load_feature_collection_from_fusion_table(path):
+  """Load a FeatureCollection from Google Fusion Table."""
+  assert path.startswith("ft:"), "Path is not a Fusion Table location."
+  result_json = ee.FeatureCollection(path).getInfo()
+  return gpd.GeoDataFrame.from_features(result_json)
+
+def load_mines_ipis250():
+  """Load mining site masks for 'mines_ipis250' dataset.
+
+  Returns:
+    GeoDataFrame containing mining site mask polygons and pcodes.
+  """
+  sinas_mining_site_masks = load_feature_collection_from_fusion_table("ft:1C4cfhvOZjqM6NRXPZjN4cBkCjVi9Ckl-tkYWvaMq")
+  sinas_mining_site_masks = sinas_mining_site_masks[["geometry"]]
+  sinas_mining_site_masks["pcode"] = np.nan
+
+  # Load pcodes for all mining sites in 'mines_ipis250'. Though we don't have
+  # polygons to match these, we'll add it to 'mining_site_masks' so we can
+  # filter by pcode.
+  sinas_mining_site_pcodes = gpd.GeoDataFrame.from_dict({"pcode": MINES_IPIS250_PCODES})
+  sinas_mining_site_pcodes["geometry"] = np.nan
+
+  return pd.concat([sinas_mining_site_masks, sinas_mining_site_pcodes], ignore_index=True)
 
 
 def main(args):
@@ -136,12 +419,22 @@ def main(args):
   logging.info("Loaded %d mining site locations, %d mining site masks"
       % (len(mining_site_locations), len(mining_site_masks)))
 
+  # Load Sina's mining site masks for 'mines_ipis250'. This collection lacks 'pcode'.
+  if args.use_mines_ipis250:
+    mining_site_masks = pd.concat([mining_site_masks, load_mines_ipis250()], ignore_index=True)
+    logging.info("Loaded additional mining site masks, locations from 'mines_ipis250'.")
+
   # Filter mining site locations to places we have masks for.
   #
   # TODO(duckworthd): Should also grab locations that have been reviewed and
   # don't have visible mining sites. These locations won't have masks.
   mining_site_locations = mining_site_locations[
       mining_site_locations['pcode'].isin(mining_site_masks['pcode'])]
+
+  # Depending on the dataset (All Visits vs. Last Visit), we may have multiple rows per location.
+  if mining_site_locations["pcode"].value_counts().max() > 1:
+    logging.info("--mining_site_locations_shapefile contains multiple entries per location. Taking the last.")
+    mining_site_locations = mining_site_locations.groupby("pcode").last()
 
   # Construct a binary ee.Image that's 1.0 wherever there's a mine.
   mining_site_masks_ee = create_earth_engine_mask(mining_site_masks)
@@ -219,6 +512,11 @@ if __name__ == '__main__':
       type=str,
       default='INFO',
       help='Default log level (DEBUG, INFO, WARNING, ERROR).')
+  parser.add_argument(
+      '--use_mines_ipis250',
+      type=bool,
+      default=True,
+      help='If True, Also include masks and ROIs from the "mines_ipis250" dataset.')
 
   args = parser.parse_args()
   main(args)
