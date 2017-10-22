@@ -1,0 +1,35 @@
+
+= Datakind Mining Project
+krishna bhogaonker <cyclotomiq@gmail.com>
+:author: Krishna Bhogaonker
+:email: cyclotomiq@gmail.com
+:revnumber: v0.01
+:revdate:   
+:revremark: README
+:description: This document provides a description and links to packages developed by me for the Datakind mining project. 
+:doctype: article
+:toc:
+:toclevels: 4                                                       
+:toc-title: Table of Contents 
+:source-highlighter: coderay
+:sectnum:
+:listing-caption: Listing
+:stylesdir: /home/krishnab/Dropbox/backup/computer/asciidoctor/stylesheet-factory/asciidoctor-stylesheet-factory/stylesheets
+:stylesheet: colony.css
+:imagedir: ./images/
+:experimental:                                                      
+:imagesdir: ./img           
+:keywords: datakind, spatial analysis, machine learning, statistics, python
+:stem: latexmath
+
+== Satellite Acquisition Package
+
+This is a python package that provides a simple (hopefully?) API to google-earth-engine to facilitate the download of satellite imagery. The user will input the imagery collection of interest, the beginning and end dates, and a file of mine locations. The package will query the appropriate imagery from earth engine and download the GeoTiff images to the indicated folder.
+
+Note that credentials to access Earth Engine must be obtained separately.
+
+The link to the respository is:
+
+https://github.com/krishnab-datakind/mining-data-acquisition[Data Acqisition Package]
+
+
