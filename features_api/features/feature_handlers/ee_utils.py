@@ -22,9 +22,9 @@ ee.Initialize()
 
 def create_circle(center, radius_meters):
     """Create a circle geometry around a (latitude, longitude)."""
-    latitude, longitude = center
+    longitude, latitude = center
     point = ee.Geometry.Point([longitude, latitude])
-    return point.buffer(radius_meters)
+    return ee.Geometry.buffer(point, radius_meters)
 
 
 def load_feature_collection_from_fusion_table(path):

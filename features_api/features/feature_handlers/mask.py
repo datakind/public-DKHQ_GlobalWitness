@@ -8,14 +8,24 @@ import ee
 import numpy as np
 
 from features.feature_handlers import ee_utils
+from features.feature_handlers import registry
 
 ee.Initialize()
 
 
-def load_mask_image():
+FUSION_TABLES = {
+    # Masks from mines_ipis250.
+    "mines_ipis250": "ft:1C4cfhvOZjqM6NRXPZjN4cBkCjVi9Ckl-tkYWvaMq",
+
+    # Masks by duckworthd@.
+    "duckworthd": "ft:1b4VFkFwQOLkR588CmrRNCNHSS0wHN6FutTr9LCPP",
+}
+
+
+def load_mask_image(table):
     """Load ee.Image containing mining masks."""
-    geodataframe = ee_utils.load_feature_collection_from_fusion_table(
-        "ft:1C4cfhvOZjqM6NRXPZjN4cBkCjVi9Ckl-tkYWvaMq")
+    table = FUSION_TABLES[table]
+    geodataframe = ee_utils.load_feature_collection_from_fusion_table(table)
     geodataframe = geodataframe[["geometry"]]
     geodataframe["MASK_VALUE"] = 1.0
     feature_collection_ee = ee_utils.geodataframe_to_earthengine(geodataframe)
@@ -24,12 +34,13 @@ def load_mask_image():
     return image_ee
 
 
+@registry.register_feature_handler("mask")
 def get_mask_image_patch(feature_spec, center, patch_size, meters_per_pixel):
     """Downloads binary mining site mask.
 
     Args:
         feature_spec: dict. Ignored.
-        center: (latitude, longitude). Center of image patch.
+        center: (longitude, latitude). Center of image patch.
         patch_size: int. height and width of square patch to extract, in
             pixels.
         meters_per_pixel. Number of m^2 per pixel.
@@ -38,7 +49,8 @@ def get_mask_image_patch(feature_spec, center, patch_size, meters_per_pixel):
         image: np.array of shape [height, width].
         metadata: empty dict.
     """
-    image = load_mask_image()
+    table = feature_spec.get("table", "duckworthd")
+    image = load_mask_image(table)
     circle = ee_utils.create_circle(center=center, radius_meters=(
         patch_size * meters_per_pixel / 2))
     circle_coordinates = circle.coordinates().getInfo()

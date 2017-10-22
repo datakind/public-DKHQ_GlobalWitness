@@ -8,6 +8,7 @@ import ee
 import numpy as np
 
 from features.feature_handlers import ee_utils
+from features.feature_handlers import registry
 
 ee.Initialize()
 
@@ -21,16 +22,23 @@ def load_landsat8_images(start_date, end_date):
     result = []
     for feature in feature_collection['features']:
         image_id = feature['id']
-        bands = [band['id'] for band in feature['bands']]
+
+        # This image collection has bands [B1, ... B11, BQA]. The BQA band
+        # has type uint16, while B1...B11 have type float. Attempting to
+        # download BQA will result in interpreting those bits as float32.
+        bands = [band['id'] for band in feature['bands']
+                 if band['data_type']['precision'] == 'float']
+
         date = feature['properties']['system:index']
         result.append({
-            "image": ee.Image(image_id),
+            "image": ee.Image(image_id).select(bands),
             "bands": bands,
             "date": date
         })
     return result
 
 
+@registry.register_feature_handler("landsat8")
 def get_landsat8_image_patch(feature_spec,
                              center,
                              patch_size,
@@ -41,7 +49,7 @@ def get_landsat8_image_patch(feature_spec,
         feature_names: dict. May contain "start_date" and/or "end_date",
             strings formatted as YYYY-MM-DD indicating date range to download
             pictures for. Defaults to [2010, 2018).
-        center: (latitude, longitude). Center of image patch.
+        center: (longitude, latitude). Center of image patch.
         patch_size: int. height and width of square patch to extract, in
             pixels.
         meters_per_pixel. Number of m^2 per pixel.

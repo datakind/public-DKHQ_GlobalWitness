@@ -26,20 +26,9 @@ def get_image_patch(feature_spec, center, patch_size, meters_per_pixel=None):
         metadata: dict. Contains additional information about 'image'.
     """
     meters_per_pixel = meters_per_pixel or 30
-    feature_handler = get_feature_handler(feature_spec["source"])
+    feature_handler = feature_handlers.get_feature_handler(
+        feature_spec["source"])
     return feature_handler(
         feature_spec,
         center, patch_size,
         meters_per_pixel=meters_per_pixel)
-
-
-def get_feature_handler(feature_handler_name):
-    """Get function to retrieve features."""
-    global FEATURE_HANDLER_MAP
-    return FEATURE_HANDLER_MAP[feature_handler_name]
-
-
-FEATURE_HANDLER_MAP = {
-    "mask": feature_handlers.get_mask_image_patch,
-    "landsat8": feature_handlers.get_landsat8_image_patch,
-}
