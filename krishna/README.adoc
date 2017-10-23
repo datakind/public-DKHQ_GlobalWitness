@@ -39,7 +39,7 @@ The basic Request and Request builder classes have been implemented. The next st
 
 == Import Imagery to Postgis Database Package
 
-This is a Rust/Go package that will take imagery and data layers downloaded by the Mining Mada Acquisition Package above and load it into a Postgres/Postgis database. 
+This is a Rust/Go package that will take imagery and data layers downloaded by the Mining Data Acquisition Package above and load it into a Postgres/Postgis database. 
 
 Current Status (10/23/2017): not yet started
 
