@@ -30,8 +30,7 @@ $ conda install bcolz pandas
 
 ## Usage
 
-See the [example notebook](notebooks/Storage API Demo.ipynb) for a live
-example.
+See the [example notebook][example_notebook] for a live example.
 
 ```python
 import storage
@@ -61,3 +60,5 @@ for image, image_metadata in dataset.load_images("landsat8_32day"):
     image_metadata["source_id"]    # "landsat8_32day"
     image_metadata["metadata"]     # {"bands": ..., "dates": ...}
 ```
+
+[example_notebook]: notebooks/Storage API Demo.ipynb
