@@ -30,6 +30,9 @@ $ conda install bcolz pandas
 
 ## Usage
 
+See the [example notebook](notebooks/Features API Example.ipynb) for a live
+example.
+
 ```python
 import storage
 
