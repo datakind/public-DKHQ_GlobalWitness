@@ -28,6 +28,12 @@ $ source activate mining_detection
 $ conda install bcolz pandas
 ```
 
+1. Install library in environment.
+
+```shell
+$ python setup.py install
+```
+
 ## Usage
 
 See the [example notebook][example_notebook] for a live example.
