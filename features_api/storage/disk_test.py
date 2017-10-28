@@ -100,6 +100,12 @@ class DiskDatasetTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.dataset.remove_image("loc0", "source0")
 
+    def test_has_image(self):
+        disk.save_metadata(self.metadata, self.base_dir)
+        self.assertTrue(self.dataset.has_image("loc0", "source0"))
+        self.assertFalse(self.dataset.has_image("loc0", "source2"))
+        self.assertFalse(self.dataset.has_image("loc1", "source0"))
+
 
 if __name__ == '__main__':
     unittest.main()

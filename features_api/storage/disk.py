@@ -157,3 +157,7 @@ class DiskDataset(object):
         condition &= metadata.source_id == source_id
         metadata = metadata[~condition]
         save_metadata(metadata, self.base_dir)
+
+    def has_image(self, location_id, source_id):
+        """Checks if image is registered in metadata."""
+        return self.image_metadata(location_id, source_id) is not None
