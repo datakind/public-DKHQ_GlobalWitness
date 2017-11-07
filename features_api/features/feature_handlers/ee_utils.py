@@ -5,11 +5,14 @@ from __future__ import division
 from __future__ import print_function
 
 import json
+import logging
 import os
 import shutil
 import string
+import cStringIO as StringIO
 import tempfile
-import urllib
+import time
+import urllib2
 import zipfile
 
 import ee
@@ -54,7 +57,7 @@ def download_map_tile(image, roi_coordinates, meters_per_pixel):
     # Generate a random filename.
     filename = ''.join(np.random.choice(list(string.ascii_letters), size=10))
 
-    # Download image containing ROI.
+    # Fetch URL to download image from.
     url = ee.data.makeDownloadUrl(
         ee.data.getDownloadId({
             'image': image.serialize(),
@@ -63,12 +66,18 @@ def download_map_tile(image, roi_coordinates, meters_per_pixel):
             'name': filename,
             'region': roi_coordinates,
         }))
-    local_zip, _ = urllib.urlretrieve(url)
+
+    # Download image. Retry a few times if too many requests.
+    timeout = 0.5
+    request = urllib2.Request(url, headers={"User-Agent": "datakind-mining-detection"})
+    contents = urllib2.urlopen(request).read()
+
+    # Attempt to read the zipfile.
+    local_zip = StringIO.StringIO(contents)
     with zipfile.ZipFile(local_zip) as local_zipfile:
         local_tif_dir = tempfile.mkdtemp()
         local_tif_filename = local_zipfile.extract(
             filename + '.tif', local_tif_dir)
-    os.remove(local_zip)
 
     # Read image into memory. Result has shape [x, y, color bands].
     dataset = gdal.Open(local_tif_filename, gdal.GA_ReadOnly)
