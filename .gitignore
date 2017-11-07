@@ -5,3 +5,7 @@
 # Python compiled files.
 *.pyo
 *.pyc
+
+# Python setuptools
+/*.egg
+/*.egg-info

@@ -1,0 +1,48 @@
+
+= Datakind Mining Project
+krishna bhogaonker <cyclotomiq@gmail.com>
+:author: Krishna Bhogaonker
+:email: cyclotomiq@gmail.com
+:revnumber: v0.01
+:revdate:   
+:revremark: README
+:description: This document provides a description and links to packages developed by me for the Datakind mining project. 
+:doctype: article
+:toc:
+:toclevels: 4                                                       
+:toc-title: Table of Contents 
+:source-highlighter: coderay
+:sectnum:
+:listing-caption: Listing
+:stylesdir: /home/krishnab/Dropbox/backup/computer/asciidoctor/stylesheet-factory/asciidoctor-stylesheet-factory/stylesheets
+:stylesheet: colony.css
+:imagedir: ./images/
+:experimental:                                                      
+:imagesdir: ./img           
+:keywords: datakind, spatial analysis, machine learning, statistics, python
+:stem: latexmath
+
+== Mining Data Acquisition Package
+
+This is a python package that provides a simple (hopefully?) API to google-earth-engine to facilitate the download of satellite imagery. The user will input the imagery collection of interest, the beginning and end dates, and a file of mine locations. The package will query the appropriate imagery from earth engine and download the GeoTiff images to the indicated folder.
+This package will also facilitate download of relevant vector or raster layers necessary to create features for the mining model.
+
+Note that credentials to access Earth Engine must be obtained separately.
+
+The link to the respository is:
+
+https://github.com/krishnab-datakind/mining-data-acquisition[Data Acqisition Package]
+
+Current Status (10/23/2017): pre-alpha
+
+The basic Request and Request builder classes have been implemented. The next step is to write the handler classes. Once that is done and working, the package will move to testing phase.
+
+== Import Imagery to Postgis Database Package
+
+This is a Rust/Go package that will take imagery and data layers downloaded by the Mining Data Acquisition Package above and load it into a Postgres/Postgis database. 
+
+Current Status (10/23/2017): not yet started
+
+Working to finish the Mining Data Acquisition Package first.
+
+
