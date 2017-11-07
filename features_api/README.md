@@ -26,10 +26,12 @@ $ source activate mining_detection
 1. Install dependencies with `conda`, `pip`
 
 ```shell
-$ conda install bcolz gdal numpy pandas geopandas
-$ pip install earthengine-api
+$ conda install gdal numpy pandas
+$ pip install earthengine-api geopandas
 $ earthengine authenticate
 ```
+
+1. Install Storage API (see instructions in ../storage_api).
 
 ## Usage
 
