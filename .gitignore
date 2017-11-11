@@ -7,5 +7,5 @@
 *.pyc
 
 # Python setuptools
-/*.egg
-/*.egg-info
+*.egg
+*.egg-info
