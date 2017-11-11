@@ -31,7 +31,7 @@ import storage
 ee.Initialize()
 
 # path to water body shape file
-water_fp="/home/fanj/MiningDetection/democratic_republic_of_the_congo_water/democratic_republic_of_the_congo_water.shp"
+water_fp="./democratic_republic_of_the_congo_water/democratic_republic_of_the_congo_water.shp"
 
 
 def getDistance2WaterFeature(pcode,fp=water_fp):
