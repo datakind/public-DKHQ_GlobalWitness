@@ -18,7 +18,7 @@ FUSION_TABLES = {
     "mines_ipis250": "ft:1C4cfhvOZjqM6NRXPZjN4cBkCjVi9Ckl-tkYWvaMq",
 
     # Masks by duckworthd@.
-    "duckworthd": "ft:1b4VFkFwQOLkR588CmrRNCNHSS0wHN6FutTr9LCPP",
+    "duckworthd": "ft:18cLkd0WGZEPWY8Mee2hRvKlyD0p6Ca_qgqIdBqdg",
 }
 
 

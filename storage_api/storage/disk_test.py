@@ -7,6 +7,8 @@ from __future__ import print_function
 import os
 import shutil
 import tempfile
+import threading
+import time
 import unittest
 
 import numpy as np
@@ -38,11 +40,11 @@ class DiskDatasetTests(unittest.TestCase):
         shutil.rmtree(self.base_dir)
 
     def test_metadata_empty(self):
-        self.assertEqual(0, len(self.dataset.metadata))
+        self.assertEqual(0, len(self.dataset.metadata()))
 
     def test_metadata_nonempty(self):
         disk.save_metadata(self.metadata, self.base_dir)
-        self.assertEqual(5, len(self.dataset.metadata))
+        self.assertEqual(5, len(self.dataset.metadata()))
 
     def test_image_metadata(self):
         disk.save_metadata(self.metadata, self.base_dir)
@@ -65,6 +67,24 @@ class DiskDatasetTests(unittest.TestCase):
 
         np.testing.assert_allclose(self.image, image)
 
+    def test_load_images(self):
+        # Load images into dataset.
+        for i in range(5):
+            location_id = "mine_site_{}".format(i)
+            source_id = "landsat8_32day"
+            image = np.random.rand(100, 100, 3, 2)
+            metadata = {"bands": ["B1", "B2", "B3"],
+                        "dates": ["20150101", "20150202"]}
+            self.dataset.add_image(location_id, source_id, image, metadata)
+
+        # Add an irrelevant image.
+        self.dataset.add_image(
+            "mine_site_0", "some_other_source", image, metadata)
+
+        # Ensure that they can be loaded back out.
+        images = list(self.dataset.load_images("landsat8_32day"))
+        self.assertEqual(5, len(images))
+
     def test_add_image_duplicate(self):
         disk.save_metadata(self.metadata, self.base_dir)
         with self.assertRaises(AssertionError):
@@ -73,7 +93,7 @@ class DiskDatasetTests(unittest.TestCase):
     def test_add_image(self):
         self.dataset.add_image("loc0", "source0", self.image, {})
 
-        self.assertEqual(1, len(self.dataset.metadata))
+        self.assertEqual(1, len(self.dataset.metadata()))
         np.testing.assert_allclose(
             self.image, self.dataset.load_image("loc0", "source0"))
 
@@ -94,7 +114,7 @@ class DiskDatasetTests(unittest.TestCase):
             image_metadata.location_id, image_metadata.source_id)
 
         self.assertFalse(os.path.exists(image_path))
-        self.assertEqual(len(self.metadata) - 1, len(self.dataset.metadata))
+        self.assertEqual(len(self.metadata) - 1, len(self.dataset.metadata()))
 
     def test_remove_image_missing(self):
         with self.assertRaises(AssertionError):
@@ -105,6 +125,46 @@ class DiskDatasetTests(unittest.TestCase):
         self.assertTrue(self.dataset.has_image("loc0", "source0"))
         self.assertFalse(self.dataset.has_image("loc0", "source2"))
         self.assertFalse(self.dataset.has_image("loc1", "source0"))
+
+
+class DiskDatasetLockTests(unittest.TestCase):
+
+    def setUp(self):
+        super(DiskDatasetLockTests, self).setUp()
+        self.base_dir = tempfile.mkdtemp()
+        self.dataset = disk.DiskDataset(self.base_dir)
+        self.lock = disk.DiskDatasetLock(self.dataset, timeout_sec=0.1)
+
+    def tearDown(self):
+        shutil.rmtree(self.base_dir)
+
+    def test_creates_lockfile_on_enter(self):
+        """Ensure a lockfile is created."""
+        self.lock.__enter__()
+        self.assertTrue(os.path.exists(self.lock.lockfile_path))
+
+    def test_deletes_lockfile_on_exit(self):
+        """Ensure a lockfile is deleted."""
+        self.lock.__enter__()
+        self.assertTrue(os.path.exists(self.lock.lockfile_path))
+        self.lock.__exit__(None, None, None)
+        self.assertFalse(os.path.exists(self.lock.lockfile_path))
+
+    def test_waits_on_existing_lockfile(self):
+        """Ensure a second lock waits on the first."""
+        self.lock.__enter__()
+        self.assertTrue(os.path.exists(self.lock.lockfile_path))
+
+        def exit_first_lock():
+            time.sleep(0.1)
+            self.lock.__exit__(None, None, None)
+        thread = threading.Thread(target=exit_first_lock)
+        thread.start()
+
+        new_lock = disk.DiskDatasetLock(self.dataset, timeout_sec=1)
+        new_lock.__enter__()
+
+        thread.join()
 
 
 if __name__ == '__main__':

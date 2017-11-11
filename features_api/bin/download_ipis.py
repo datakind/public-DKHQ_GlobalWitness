@@ -12,12 +12,16 @@ from __future__ import print_function
 
 import argparse
 import logging
+import time
 
 from features.feature_handlers import ee_utils
 from features.feature_handlers import mask
+from gevent import monkey
 import features
-import parallel
+import gevent
 import storage
+
+monkey.patch_all()
 
 
 def merge_dicts(*args):
@@ -26,25 +30,44 @@ def merge_dicts(*args):
         result.update(arg)
     return result
 
+def with_retries(name, thunk, num_retries, timeout):
+    err = gevent.Timeout()
+    for i in range(num_retries):
+        try:
+            return thunk()
+        except Exception as err:
+            logging.info("Failed to execute {}. Retrying in {} seconds. Exception: {}.".format(name, timeout, err))
+            time.sleep(timeout)
+            timeout *= 2.0
+    raise err
 
-def add_image_to_dataset(dataset, location, feature_spec):
-    """Add a single image to 'dataset'."""
-    if dataset.has_image(location.pcode, feature_spec["source"]):
-        return
 
-    logging.info("Loading {}/{}.".format(location.pcode,
-                                         feature_spec["source"]))
+def add_image_to_dataset(dataset, location, feature_spec, lock):
     # longitude, latitude.
     center = (location.geometry.x, location.geometry.y)
 
-    image, metadata = features.get_image_patch(
+    # Download image.
+    name = "{}/{}".format(location.pcode, feature_spec["source"])
+    logging.info("Loading {}.".format(name))
+    thunk = lambda: features.get_image_patch(
         feature_spec=feature_spec,
         center=center,
         patch_size=100,
         meters_per_pixel=30)
+    image, metadata = with_retries(name, thunk, num_retries=5, timeout=1.0)
 
+    logging.info("Saving {} to disk.".format(name))
+    lock.acquire()
+    # Delete old image if there is one.
+    if dataset.has_image(location.pcode, feature_spec["source"]):
+        dataset.remove_image(location.pcode, feature_spec["source"])
+
+    # Add image to dataset.
     dataset.add_image(location.pcode, feature_spec["source"], image,
-                      merge_dicts(feature_spec, metadata))
+        merge_dicts(feature_spec, metadata))
+    lock.release()
+
+    logging.info("Finished {}.".format(name))
 
 
 def main(args):
@@ -52,7 +75,7 @@ def main(args):
 
     # Fetch mining masks, locations.
     masks = ee_utils.load_feature_collection_from_fusion_table(
-        mask.FUSION_TABLES["duckworthd"])
+            mask.FUSION_TABLES["duckworthd"])
     locations = ee_utils.load_feature_collection_from_fusion_table(
         "ft:1AFPyNO4MpeeV9TAD-dJj7xsnhS4splJ4DHVZnobG")
     locations = locations[locations.pcode.isin(masks.pcode)]
@@ -67,23 +90,19 @@ def main(args):
         },
         {
             "source": "landsat8",
-            "start_date": "2010-01-01",
-            "end_date": "2018-01-01"
+            "start_date": "2016-10-01",
+            "end_date": "2017-10-01"
         }
     ]
 
-    add_image_args_tuples = [
-        (dataset, location, feature_spec)
-        for feature_spec in feature_specs
-        for _, location in locations.iterrows()
-    ]
-
-    for args_tuple in add_image_args_tuples:
-        add_image_to_dataset(*args_tuple)
-
-    # TODO(duckworthd): Don't do this until DiskDataset is thread-safe.
-    # parallel.parallel_map(
-    #       add_image_to_dataset, add_image_args, max_threads=8)
+    # Download with gevent.
+    pool = gevent.pool.Pool(args.max_concurrent_requests)
+    threads = []
+    lock = gevent.lock.Semaphore()
+    for _, location in locations.iterrows():
+        for feature_spec in feature_specs:
+            pool.spawn(add_image_to_dataset, dataset, location, feature_spec, lock)
+    pool.join()
 
 
 if __name__ == '__main__':
@@ -92,5 +111,9 @@ if __name__ == '__main__':
         '--base_dir',
         type=str, required=True,
         help='Base directory for files.')
+    parser.add_argument(
+        '--max_concurrent_requests',
+        type=int, default=5,
+        help='Maximum number of concurrent RPCs. Use <= 5 for Earth Engine.')
     logging.basicConfig(level=logging.INFO)
     main(parser.parse_args())
