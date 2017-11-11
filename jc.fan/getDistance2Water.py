@@ -62,9 +62,9 @@ def getDistance2WaterFeature(pcode,fp=water_fp):
     # source (e.g. "distance2water"). Both are arbitrary strings.
    
     location_id = pcode
-    source_id = "distance2water"
+    source_id = "distance_to_ground_feature"
     
-    metadata = {"bands": ["distance2water"]}
+    metadata = {"bands": "water"}
     if not dataset.has_image(location_id, source_id):
         image= calculateDistanceMatrix(lat,lng,fp)
         
