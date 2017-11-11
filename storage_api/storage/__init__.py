@@ -6,3 +6,4 @@ from __future__ import print_function
 
 from storage.disk import DiskDataset
 from storage.disk import LockTimeoutException
+from storage.disk import merge_datasets

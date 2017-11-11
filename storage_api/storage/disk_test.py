@@ -17,6 +17,56 @@ import pandas as pd
 from storage import disk
 
 
+class MergeDatasetTests(unittest.TestCase):
+
+    def setUp(self):
+        super(MergeDatasetTests, self).setUp()
+
+        self.input_datasets = []
+
+        dataset = disk.DiskDataset(tempfile.mkdtemp())
+        dataset.add_image("loc0", "src0", np.random.randn(5, 5), {})
+        dataset.add_image("loc1", "src0", np.random.randn(5, 5), {})
+        self.input_datasets.append(dataset)
+
+        # Different src than first dataset.
+        dataset = disk.DiskDataset(tempfile.mkdtemp())
+        dataset.add_image("loc0", "src1", np.random.randn(3, 3), {})
+        dataset.add_image("loc1", "src1", np.random.randn(3, 3), {})
+        self.input_datasets.append(dataset)
+
+        # Partially overlaps with 1st dataset.
+        dataset = disk.DiskDataset(tempfile.mkdtemp())
+        dataset.add_image(
+            "loc0", "src0", np.random.randn(1, 1), {"dataset": 2})
+        dataset.add_image("loc2", "src0", np.random.randn(1, 1), {})
+        self.input_datasets.append(dataset)
+
+        dataset = disk.DiskDataset(tempfile.mkdtemp())
+        self.output_dataset = dataset
+
+    def test_merge_datasets(self):
+        """Ensure 2 datasets can be merged into each other."""
+        disk.merge_datasets(self.input_datasets[0:2], self.output_dataset)
+        self.assertEqual(4, len(self.output_dataset.metadata()))
+
+    def test_duplicate_images_error(self):
+        """Ensure duplicate images cause an exception."""
+        with self.assertRaises(AssertionError):
+            disk.merge_datasets(self.input_datasets, self.output_dataset)
+
+    def test_remove_existing_images(self):
+        """Ensure remove_existing_images lets last conflict win."""
+        disk.merge_datasets(self.input_datasets,
+                            self.output_dataset, remove_existing_images=True)
+        self.assertEqual(5, len(self.output_dataset.metadata()))
+
+        overwritten_image_metadata = self.output_dataset.image_metadata(
+            "loc0", "src0")
+        self.assertEqual(
+            {"dataset": 2}, overwritten_image_metadata["metadata"])
+
+
 class DiskDatasetTests(unittest.TestCase):
 
     def setUp(self):

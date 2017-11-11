@@ -65,6 +65,22 @@ def remove_image(path):
         os.rmdir(parent_dir)
 
 
+def merge_datasets(
+        input_datasets,
+        output_dataset,
+        remove_existing_images=False):
+    for input_dataset in input_datasets:
+        for _, row in input_dataset.metadata().iterrows():
+            location_id = row['location_id']
+            source_id = row['source_id']
+            metadata = row['metadata']
+            image = input_dataset.load_image(location_id, source_id)
+            if (remove_existing_images and
+                    output_dataset.has_image(location_id, source_id)):
+                output_dataset.remove_image(location_id, source_id)
+            output_dataset.add_image(location_id, source_id, image, metadata)
+
+
 class DiskDataset(object):
     """An on-disk image dataset backed by bcolz.
 
