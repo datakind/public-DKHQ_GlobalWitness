@@ -37,9 +37,8 @@ class MergeDatasetTests(unittest.TestCase):
 
         # Partially overlaps with 1st dataset.
         dataset = disk.DiskDataset(tempfile.mkdtemp())
-        dataset.add_image(
-            "loc0", "src0", np.random.randn(1, 1), {"dataset": 2})
-        dataset.add_image("loc2", "src0", np.random.randn(1, 1), {})
+        dataset.add_image("loc0", "src2", np.random.randn(1, 1), {})
+        dataset.add_image("loc1", "src0", np.random.randn(1, 1), {"dataset": 2})
         self.input_datasets.append(dataset)
 
         dataset = disk.DiskDataset(tempfile.mkdtemp())
@@ -55,6 +54,9 @@ class MergeDatasetTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             disk.merge_datasets(self.input_datasets, self.output_dataset)
 
+        # Original dataset shouldn't be modified.
+        self.assertEqual(0, len(self.output_dataset.metadata()))
+
     def test_remove_existing_images(self):
         """Ensure remove_existing_images lets last conflict win."""
         disk.merge_datasets(self.input_datasets,
@@ -62,7 +64,7 @@ class MergeDatasetTests(unittest.TestCase):
         self.assertEqual(5, len(self.output_dataset.metadata()))
 
         overwritten_image_metadata = self.output_dataset.image_metadata(
-            "loc0", "src0")
+            "loc1", "src0")
         self.assertEqual(
             {"dataset": 2}, overwritten_image_metadata["metadata"])
 

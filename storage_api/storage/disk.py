@@ -6,8 +6,10 @@ from __future__ import print_function
 
 import errno
 import json
+import logging
 import os
 import shutil
+import tempfile
 import time
 
 import bcolz
@@ -69,16 +71,51 @@ def merge_datasets(
         input_datasets,
         output_dataset,
         remove_existing_images=False):
-    for input_dataset in input_datasets:
-        for _, row in input_dataset.metadata().iterrows():
-            location_id = row['location_id']
-            source_id = row['source_id']
-            metadata = row['metadata']
-            image = input_dataset.load_image(location_id, source_id)
-            if (remove_existing_images and
-                    output_dataset.has_image(location_id, source_id)):
-                output_dataset.remove_image(location_id, source_id)
-            output_dataset.add_image(location_id, source_id, image, metadata)
+    """Sequentially merges multiple datasets together.
+
+    Copies contents of each input dataset into output, in order. Fails if
+    multiple datasets have the same registered image unless
+    remove_existing_images=True.
+
+    This function 
+
+    Args:
+        input_datasets: list of DiskDataset. Datasets to merge together.
+        output_dataset: DiskDataset. Destination to write merged datasets to.
+        remove_existing_images: bool. If True, last conflicting image wins.
+    """
+    tmp_dataset = DiskDataset(tempfile.mkdtemp())
+
+    def copy_image(row, src_dataset, dst_dataset):
+        location_id = row['location_id']
+        source_id = row['source_id']
+        metadata = row['metadata']
+        image = src_dataset.load_image(location_id, source_id)
+        if (remove_existing_images and
+                dst_dataset.has_image(location_id, source_id)):
+            dst_dataset.remove_image(location_id, source_id)
+        dst_dataset.add_image(location_id, source_id, image, metadata)
+
+    try:
+        for input_dataset in [output_dataset] + input_datasets:
+            for _, row in input_dataset.metadata().iterrows():
+                copy_image(row, input_dataset, tmp_dataset)
+
+        # Move tmp_dataset into dst_dataset's place.
+        output_backup_base_dir = output_dataset.base_dir + ".backup"
+        logging.info(
+                ("Backing %s up to %s and copying %s into its place. If "
+                 "this fails, you can recover the original by moving "
+                 "back to its original place.",
+                 output_dataset.base_dir,
+                 output_backup_base_dir,
+                 tmp_dataset.base_dir))
+        shutil.move(output_dataset.base_dir, output_backup_base_dir)
+        shutil.copytree(tmp_dataset.base_dir, output_dataset.base_dir)
+        shutil.rmtree(output_backup_base_dir)
+    finally:
+        # Clean up temp directory.
+        shutil.rmtree(tmp_dataset.base_dir)
 
 
 class DiskDataset(object):
