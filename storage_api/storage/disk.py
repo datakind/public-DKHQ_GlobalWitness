@@ -100,12 +100,12 @@ def merge_datasets(
                 dst_dataset.has_image(location_id, source_id)):
             dst_dataset.remove_image(location_id, source_id)
         dst_dataset.add_image(location_id, source_id, image, metadata)
-        num_images_merged += 1
 
     try:
         for input_dataset in [output_dataset] + input_datasets:
             for _, row in input_dataset.metadata().iterrows():
                 copy_image(row, input_dataset, tmp_dataset)
+                num_images_merged += 1
 
         # Move tmp_dataset into dst_dataset's place.
         output_base_dir_exists = os.path.exists(output_dataset.base_dir)
