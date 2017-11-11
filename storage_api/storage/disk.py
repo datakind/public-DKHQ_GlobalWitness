@@ -77,14 +77,19 @@ def merge_datasets(
     multiple datasets have the same registered image unless
     remove_existing_images=True.
 
-    This function 
+    This function does not alter output_dataset if there are errors.
 
     Args:
         input_datasets: list of DiskDataset. Datasets to merge together.
         output_dataset: DiskDataset. Destination to write merged datasets to.
         remove_existing_images: bool. If True, last conflicting image wins.
+
+    Returns:
+        Number of images merged.
     """
     tmp_dataset = DiskDataset(tempfile.mkdtemp())
+
+    num_images_merged = 0
 
     def copy_image(row, src_dataset, dst_dataset):
         location_id = row['location_id']
@@ -95,6 +100,7 @@ def merge_datasets(
                 dst_dataset.has_image(location_id, source_id)):
             dst_dataset.remove_image(location_id, source_id)
         dst_dataset.add_image(location_id, source_id, image, metadata)
+        num_images_merged += 1
 
     try:
         for input_dataset in [output_dataset] + input_datasets:
@@ -102,20 +108,28 @@ def merge_datasets(
                 copy_image(row, input_dataset, tmp_dataset)
 
         # Move tmp_dataset into dst_dataset's place.
-        output_backup_base_dir = output_dataset.base_dir + ".backup"
-        logging.info(
-                ("Backing %s up to %s and copying %s into its place. If "
-                 "this fails, you can recover the original by moving "
-                 "back to its original place.",
-                 output_dataset.base_dir,
-                 output_backup_base_dir,
-                 tmp_dataset.base_dir))
-        shutil.move(output_dataset.base_dir, output_backup_base_dir)
+        output_base_dir_exists = os.path.exists(output_dataset.base_dir)
+
+        if output_base_dir_exists:
+            output_backup_base_dir = output_dataset.base_dir + ".backup"
+            logging.info(
+                "Backing %s up to %s and copying %s into its place. If "
+                "this fails, you can recover the original by moving "
+                "back to its original place.",
+                output_dataset.base_dir,
+                output_backup_base_dir,
+                tmp_dataset.base_dir)
+            shutil.move(output_dataset.base_dir, output_backup_base_dir)
+
         shutil.copytree(tmp_dataset.base_dir, output_dataset.base_dir)
-        shutil.rmtree(output_backup_base_dir)
+
+        if output_base_dir_exists:
+            shutil.rmtree(output_backup_base_dir)
     finally:
         # Clean up temp directory.
         shutil.rmtree(tmp_dataset.base_dir)
+
+    return num_images_merged
 
 
 class DiskDataset(object):
