@@ -97,7 +97,6 @@ def main(args):
 
     # Download with gevent.
     pool = gevent.pool.Pool(args.max_concurrent_requests)
-    threads = []
     lock = gevent.lock.Semaphore()
     for _, location in locations.iterrows():
         for feature_spec in feature_specs:
