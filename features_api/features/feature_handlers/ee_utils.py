@@ -42,7 +42,8 @@ def download_map_tile(image, roi_coordinates, meters_per_pixel):
 
     Constructs a rasterized image tile subsetting 'image'. The image is large
     enough to fully contain the polygon described by 'roi', and will contain
-    one pixel per 'meters_per_pixel' m^2 area.
+    one pixel per 'meters_per_pixel' m^2 area. The image is axis-aligned to
+    (longitude, latitude).
 
     Args:
       image: ee.Image instance. To be used as mask. Must have exactly 1 band.
@@ -51,8 +52,16 @@ def download_map_tile(image, roi_coordinates, meters_per_pixel):
       meters_per_pixel: int. Number of squared meters per pixel.
 
     Returns:
-      numpy array of shape [N x M x K], where N is width, M is height, and K is
-      number of bands.
+      image: numpy array of shape [N x M x K], where N is width, M is height,
+        and K is number of bands. N is aligned with longitude, M with latitude.
+      metadata: dict containing:
+        projection: string. Name of projection used. Always "WGS 84".
+        center: (float, float). Longitude, latitude of the center of the image.
+        top_left: (float, float). Longitude, latitude of the top-left of
+          image[0, 0].
+        bottom_right: (float, float). Longitude, latitude of the bottom-right
+          of image[-1, -1].
+        pixel_size: (float, float). Size in longitude, latitude of each pixel.
     """
     # Generate a random filename.
     filename = ''.join(np.random.choice(list(string.ascii_letters), size=10))
@@ -68,8 +77,8 @@ def download_map_tile(image, roi_coordinates, meters_per_pixel):
         }))
 
     # Download image. Retry a few times if too many requests.
-    timeout = 0.5
-    request = urllib2.Request(url, headers={"User-Agent": "datakind-mining-detection"})
+    request = urllib2.Request(
+        url, headers={"User-Agent": "datakind-mining-detection"})
     contents = urllib2.urlopen(request).read()
 
     # Attempt to read the zipfile.
@@ -85,7 +94,41 @@ def download_map_tile(image, roi_coordinates, meters_per_pixel):
              for i in range(dataset.RasterCount)]
     shutil.rmtree(local_tif_dir)
 
-    return np.stack(bands, axis=2)
+    # Ensure pixels are aligned with longitude, latitude.
+    transform = dataset.GetGeoTransform()
+    assert transform[2] == 0.0
+    assert transform[4] == 0.0
+
+    # Ensure we're using a reasonable projection.
+    # https://en.wikipedia.org/wiki/World_Geodetic_System
+    assert "WGS 84" in dataset.GetProjection()
+
+    # Get (longitude, latitude) of the top-left and bottom-right of the image.
+    def lon_lat(x_pixel, y_pixel):
+        return (
+            transform[0] + x_pixel * transform[1] + y_pixel * transform[2],
+            transform[3] + x_pixel * transform[4] + y_pixel * transform[5]
+        )
+
+    x_size = dataset.RasterXSize
+    y_size = dataset.RasterYSize
+    center = lon_lat(x_size / 2.0, y_size / 2.0)
+
+    # top-left corner of pixel (0, 0)
+    top_left = lon_lat(0, 0)
+
+    # bottom-right corner of pixel (x_size-1, y_size-1)
+    bottom_right = lon_lat(x_size, y_size)
+
+    metadata = {
+        "projection": "WGS 84",
+        "center": center,
+        "top_left": top_left,
+        "bottom_right": bottom_right,
+        "pixel_size": (transform[1], transform[5]),
+    }
+
+    return np.stack(bands, axis=2), metadata
 
 
 def geodataframe_to_earthengine(geodataframe):

@@ -39,7 +39,8 @@ def get_mask_image_patch(feature_spec, center, patch_size, meters_per_pixel):
     """Downloads binary mining site mask.
 
     Args:
-        feature_spec: dict. Ignored.
+        feature_spec: dict. May contains "table", indicating which Fusion Table
+            to draw masks from.
         center: (longitude, latitude). Center of image patch.
         patch_size: int. height and width of square patch to extract, in
             pixels.
@@ -54,7 +55,7 @@ def get_mask_image_patch(feature_spec, center, patch_size, meters_per_pixel):
     circle = ee_utils.create_circle(center=center, radius_meters=(
         patch_size * meters_per_pixel / 2))
     circle_coordinates = circle.coordinates().getInfo()
-    result = ee_utils.download_map_tile(
+    result, metadata = ee_utils.download_map_tile(
         image, circle_coordinates, meters_per_pixel)
     image = np.reshape(result, [result.shape[0], result.shape[1]])
-    return image, {}
+    return image, metadata

@@ -15,7 +15,7 @@ def get_image_patch(feature_spec, center, patch_size, meters_per_pixel=None):
     Args:
         feature_spec: dict with optional parameters for feature handler. Must
             have "source" parameter (e.g. "mask" or "landsat8").
-        center: (latitude, longitude). Center for image patch.
+        center: (longitude, latitude). Center for image patch.
         patch_size: int. Height and width of image patch, in pixels.
         meters_per_pixel: int or None. Number of m^2 per pixel. Defaults to 30.
 

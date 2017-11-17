@@ -19,5 +19,8 @@ setuptools.setup(
         'numpy',
     ],
     test_suite='nose.collector',
-    tests_require=['nose'],
+    tests_require=[
+        'nose',
+        'numpy'
+    ],
 )

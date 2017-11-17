@@ -23,11 +23,11 @@ def load_landsat8_images(start_date, end_date):
     for feature in feature_collection['features']:
         image_id = feature['id']
 
-        # This image collection has bands [B1, ... B11, BQA]. The BQA band
-        # has type uint16, while B1...B11 have type float. Attempting to
-        # download BQA will result in interpreting those bits as float32.
-        bands = [band['id'] for band in feature['bands']
-                 if band['data_type']['precision'] == 'float']
+        # Warning: This image collection has bands [B1, ... B11, BQA]. The BQA
+        # band has type uint16, while B1...B11 have type float. The BQA band
+        # will be bit-interpreted as float32, but should be bit-casted to
+        # uint16 before use.
+        bands = [band['id'] for band in feature['bands']]
 
         date = feature['properties']['system:index']
         result.append({
@@ -71,16 +71,26 @@ def get_landsat8_image_patch(feature_spec,
 
     result = []
     bands = None
+    metadata = None
     dates = []
     for image in images:
-        result.append(ee_utils.download_map_tile(
-            image["image"], circle_coordinates, meters_per_pixel))
+        raster_image, raster_image_metadata = ee_utils.download_map_tile(
+            image["image"], circle_coordinates, meters_per_pixel)
+        result.append(raster_image)
+
         if bands is None:
             bands = image["bands"]
         assert bands == image["bands"]
+
+        if metadata is None:
+            metadata = raster_image_metadata
+        assert metadata == raster_image_metadata
+
         dates.append(image["date"])
 
     result = np.stack(result, axis=-1)
     result[np.isneginf(result)] = np.nan
+    metadata["bands"] = bands
+    metadata["dates"] = dates
 
-    return result, {"bands": bands, "dates": dates}
+    return result, metadata
