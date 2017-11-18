@@ -46,3 +46,9 @@ class BoundingBox(_BoundingBox):
     @property
     def bottom_left(self):
         return (self.min_latitude, self.min_latitude)
+
+    @property
+    def center(self):
+        center_longitude = self.min_longitude + (self.max_longitude - self.min_longitude) / 2
+        center_latitude = self.min_latitude + (self.max_latitude - self.min_latitude) / 2
+        return (center_longitude, center_latitude)
