@@ -55,7 +55,7 @@ def get_landsat8_image_patch(feature_spec,
         meters_per_pixel. Number of m^2 per pixel.
 
     Returns:
-        image: np.array of shape [height, width, num_bands, num_dates].
+        image: np.array of shape [width, height, num_bands, num_dates].
         metadata: dict contains keys "bands" (list of strings, color band
             names) and "dates" (list of "YYYYMMDD" strings, dates photos were
             taken).

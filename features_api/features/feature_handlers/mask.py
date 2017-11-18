@@ -47,7 +47,7 @@ def get_mask_image_patch(feature_spec, center, patch_size, meters_per_pixel):
         meters_per_pixel. Number of m^2 per pixel.
 
     Returns:
-        image: np.array of shape [height, width].
+        image: np.array of shape [width, height].
         metadata: empty dict.
     """
     table = feature_spec.get("table", "duckworthd")

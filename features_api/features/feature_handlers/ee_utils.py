@@ -37,6 +37,43 @@ def load_feature_collection_from_fusion_table(path):
     return gpd.GeoDataFrame.from_features(result_json)
 
 
+def download_pixel_centers(center, patch_size, meters_per_pixel):
+    """Downloads (lon, lat) of every pixel in an image.
+
+    Args:
+      center: (longitude, latitude). Center of image patch.
+      patch_size: int. height and width of square patch to extract, in
+          pixels.
+      meters_per_pixel: int. Number of m^2 per pixel.
+
+    Returns:
+        coordinates: np.array of shape [width, height, 2].  Last dimension
+            corresponds to (longitude, latitude).
+        metadata: See download_map_tile().
+    """
+    # Image doesn't matter. Anything will do.
+    image = ee.Image('LANDSAT/LC8_L1T_32DAY_TOA/20130407').select('B1')
+
+    circle = create_circle(center=center, radius_meters=(
+        patch_size * meters_per_pixel / 2))
+    circle_coordinates = circle.coordinates().getInfo()
+    image, metadata = download_map_tile(
+        image, circle_coordinates, meters_per_pixel)
+
+    # Add 0.5 to get the center of each pixel (not its top-left corner).
+    xs = np.arange(image.shape[0]) + 0.5
+    ys = np.arange(image.shape[1]) + 0.5
+    xs, ys = np.meshgrid(xs, ys, indexing='ij')
+
+    lon0, lat0 = metadata["top_left"]
+    lon_size, lat_size = metadata["pixel_size"]
+    longitudes = lon0 + xs * lon_size
+    latitudes = lat0 + ys * lat_size
+    result = np.stack([longitudes, latitudes], axis=-1)
+
+    return result, metadata
+
+
 def download_map_tile(image, roi_coordinates, meters_per_pixel):
     """Get rasterized image containing ROI from Earth Engine.
 
@@ -93,6 +130,7 @@ def download_map_tile(image, roi_coordinates, meters_per_pixel):
     bands = [dataset.GetRasterBand(i + 1).ReadAsArray()
              for i in range(dataset.RasterCount)]
     shutil.rmtree(local_tif_dir)
+    image = np.stack(bands, axis=-1)
 
     # Ensure pixels are aligned with longitude, latitude.
     transform = dataset.GetGeoTransform()
@@ -110,8 +148,8 @@ def download_map_tile(image, roi_coordinates, meters_per_pixel):
             transform[3] + x_pixel * transform[4] + y_pixel * transform[5]
         )
 
-    x_size = dataset.RasterXSize
-    y_size = dataset.RasterYSize
+    x_size = image.shape[0]
+    y_size = image.shape[1]
     center = lon_lat(x_size / 2.0, y_size / 2.0)
 
     # top-left corner of pixel (0, 0)
@@ -128,7 +166,7 @@ def download_map_tile(image, roi_coordinates, meters_per_pixel):
         "pixel_size": (transform[1], transform[5]),
     }
 
-    return np.stack(bands, axis=2), metadata
+    return image, metadata
 
 
 def geodataframe_to_earthengine(geodataframe):
