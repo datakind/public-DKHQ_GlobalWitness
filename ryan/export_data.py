@@ -9,7 +9,9 @@ from matplotlib import pyplot as plt
 import mining; reload(mining)
 import os
 import h5py
+import math
 from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
 
 import storage
 
@@ -22,30 +24,60 @@ IMAGE_INPUT_DIR = "images_h5" #images_h5_sample images_h5
 def main(args):
     # We are just exporting our data
 
-    imgs, img_metadata = load_images(IMAGE_INPUT_DIR)
-
-    # Set cloud mask threshold
-    cloud_threshold = 3 # high confidence
-
-    # Turn each pixel into an example. Use all color bands except for 'mask' (the last one).
-    num_bands = imgs.shape[3]
-    x, bad_row_idxs = per_pixel_images(imgs[:,:,:,range(num_bands-1),:], img_metadata, cloud_threshold)
-
-    # Turn each pixel int a label. Use the last color band ('mask').
-    y = per_pixel_labels(imgs[:,:,:,[num_bands-1],:], bad_row_idxs)
-    y = y[:, 0]
-
-    np.savez(args.export_data,x=x,y=y)
-    print 'x shape', x.shape
-    print 'y shape', y.shape
-
-    assert x.shape[0] == y.shape[0], 'x and y lengths should be the same.'
-
-    print 'Constructed %d examples, %d features, %0.3f%% positive' % (x.shape[0], x.shape[1], np.mean(y))
+    load_images_storage(args.image_input_dir)
 
 def load_images_storage(image_input_dir):
     dataset = storage.DiskDataset(image_input_dir)
 
+    images_features = []
+    bqas = []
+
+    for image, image_metadata in dataset.load_images("landsat8"):
+        # Shift the indices so the order is  [dates,x,y, bands] (need this to reshape later)
+        image = np.transpose(image, [3, 0, 1, 2])
+        image_databands = image[:, :, :, :11]
+
+        bqa = image[:, :, :, 11]
+
+        n_dates, n_x, n_y, n_bands = np.shape(image_databands)
+
+        months = [math.cos(float(date[4:6])/12.0) for date in image_metadata['metadata']['dates']]
+
+        dates = np.expand_dims(np.repeat(months, n_x*n_y), 1)
+
+        A=image_databands[-2,:,:,3]
+        print(np.shape(A))
+        plt.imshow(A)
+        plt.show()
+        image_features = np.reshape(image_databands, (n_x*n_y*n_dates, n_bands))
+        # image_features = np.hstack([image_features, dates])
+        #
+        # A=np.reshape(image_features[-n_x * n_y:, 3], (n_x, n_y))
+        # print A
+        # print A.shape
+        # plt.imshow(A)
+        # plt.show()
+        images_features.append(image_features)
+
+        bqa_features = np.reshape(bqa, (n_x*n_y*n_dates))
+        bqas.append(bqa_features)
+
+
+
+    bqas = np.expand_dims(np.concatenate(tuple(bqas), axis=0), 1)
+    images_features = np.concatenate(tuple(images_features), axis=0)
+
+    A=np.reshape(images_features[-n_x * n_y:, 2], (n_x, n_y))
+    print(A)
+    plt.imshow(A)
+    plt.show()
+
+    plt.imshow(np.reshape(images_features[-n_x*n_y:,0], (n_x, n_y)))
+    plt.show()
+    print("Done Concatenation")
+
+    get_cloud_mask(bqas)
+    print("Done Cloud Mask")
 
 def load_images(image_input_dir):
     index_list = range(14, 21) + [30, 31, 37, 47, 56, 61, 76, 77, 80, 84, 92, 103,
@@ -64,48 +96,28 @@ def load_images(image_input_dir):
 
     return imgs, img_metadata
 
-def create_a_months_matrix(images, img_metadata):
-    a = np.zeros((images.shape[0], images.shape[4]))
-    for i, (j, row) in enumerate(img_metadata.iterrows()):
-        a[int(i),:] = np.array([int(j[4:6]) for j in row['dates']])
-    a = np.expand_dims(a, axis=1)
-    a = np.expand_dims(a, axis=1)
-    a = np.expand_dims(a, axis=1)
-    a = np.repeat(a, 100, axis=1)
-    a = np.repeat(a, 100, axis=2)
-    a = np.repeat(a, 16, axis=3)
-    return a
-
-def expand_bqa_dims(cloud_array, nsites, ntimes, nbands):
-    clouds = np.expand_dims(cloud_array, axis=3)
-    allclouds = np.repeat(clouds, 16, axis=3)
-    return allclouds
-
-def get_bqa_mask(bqa):
+def get_cloud_mask(bqa):
     '''
-    Takes in a numpy array of shape(n_images, height, width, num_times) and returns
-    a mask of shape(n_images, width, height, num_times)
+    Takes in a bqa array and returns a mask of clouds
     '''
     landsat_confidences = {
         LandsatConfidence.low: 1,
         LandsatConfidence.medium: 2,
         LandsatConfidence.high: 3
     }
+
     bqa = bqa.astype(np.int16)
     conf_is_cumulative = False
     masker = LandsatMasker(bqa, collection=0)
-    one_img_mask_all_conf = np.zeros_like(bqa).astype(np.int16)
+    cloud_conf = np.zeros_like(bqa).astype(np.int16)
 
-    num_images, height, width, num_times = bqa.shape
+    for conf in landsat_confidences:
+        mask = masker.get_cloud_mask(conf, cumulative=conf_is_cumulative)
+        cloud_conf += mask * landsat_confidences[conf]  # multiply each conf by a value
 
-    for i in xrange(num_images):
-        for j in xrange(num_times):
-            for conf in landsat_confidences:
-                mask = masker.get_cloud_mask(conf, cumulative=conf_is_cumulative)
-                mask = mask * landsat_confidences[conf]  # multiply each conf by a value
-                one_img_mask_all_conf[i,:,:,j] += mask[i,:,:,j]  # sum all conf masks together
+    return cloud_conf
 
-    return one_img_mask_all_conf
+
 
 
 def get_bqa_water_mask(bqa):
@@ -205,5 +217,9 @@ if __name__=='__main__':
         '--export_data',
         type=str,
         help='Data path')
+    parser.add_argument(
+        '--image_input_dir',
+        type=str,
+        help='Storage path')
 
     main(parser.parse_args())
