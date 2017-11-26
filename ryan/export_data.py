@@ -11,6 +11,8 @@ import os
 import h5py
 from sklearn.cluster import KMeans
 
+import storage
+
 from pymasker import LandsatMasker
 from pymasker import LandsatConfidence
 
@@ -40,6 +42,10 @@ def main(args):
     assert x.shape[0] == y.shape[0], 'x and y lengths should be the same.'
 
     print 'Constructed %d examples, %d features, %0.3f%% positive' % (x.shape[0], x.shape[1], np.mean(y))
+
+def load_images_storage(image_input_dir):
+    dataset = storage.DiskDataset(image_input_dir)
+
 
 def load_images(image_input_dir):
     index_list = range(14, 21) + [30, 31, 37, 47, 56, 61, 76, 77, 80, 84, 92, 103,
