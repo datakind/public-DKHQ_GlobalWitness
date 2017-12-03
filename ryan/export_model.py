@@ -18,24 +18,19 @@ import joblib
 from sklearn.ensemble import RandomForestClassifier
 
 def main(args):
-    print args.data_path
-    x,y=load_data(args.data_path)
+    X_train, X_test, y_train, y_test = load_data(args.data_path)
 
-    print np.shape(x)
-    print np.shape(y)
-    rf = train(x,y)
-    # joblib.dump(rf, args.export_model_path)
+    train(X_train, y_train)
 
 def load_data(data_path):
     f = np.load(data_path)
 
-    x=f['x']
-    y=f['y']
+    X_train=f['X_train']
+    X_test = f['X_test']
+    y_train = f['y_train']
+    y_test = f['y_test']
 
-    print x.shape, y.shape
-
-
-    return x,y
+    return X_train, X_test, y_train, y_test
 
 def train(x,y):
 
