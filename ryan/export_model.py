@@ -1,103 +1,88 @@
 import argparse
-import time
 import numpy as np
 import pandas as pd
-import sonnet as snt
 import seaborn as sns; sns.set_style("whitegrid")
 from matplotlib import pyplot as plt
-import mining; reload(mining)
-import os
-import h5py
-from sklearn.cluster import KMeans
-
-from pymasker import LandsatMasker
-from pymasker import LandsatConfidence
-
-import sklearn
-import joblib
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import precision_recall_curve, average_precision_score, auc
+from sklearn.externals import joblib
 
 def main(args):
-    X_train, X_test, y_train, y_test = load_data(args.data_path)
+    X_train, X_val, y_train, y_val = load_data(args.data_path)
 
-    train(X_train, y_train)
+    model = train(X_train, y_train)
+
+    export_model(model, args.export_model_path)
+
+    predict_confusion(X_val, y_val, model)
+    predict_pr(X_train, y_train, model)
 
 def load_data(data_path):
-    f = np.load(data_path)
+    with np.load(data_path) as f:
+        X_train=f['X_train']
+        X_val = f['X_val']
+        y_train = f['y_train']
+        y_val = f['y_val']
 
-    X_train=f['X_train']
-    X_test = f['X_test']
-    y_train = f['y_train']
-    y_test = f['y_test']
+    return X_train, X_val, y_train, y_val
 
-    return X_train, X_test, y_train, y_test
+def export_model(model, model_path):
+    joblib.dump(model, model_path)
 
-def train(x,y):
+def predict(X, model):
+    cluster_ids = model.predict(X).astype(int)
 
-    num_estimators = [10]  # , 300, 600]
-    max_depths = [10]  # , 40, 50]
+    return cluster_ids
 
-    for n_estimators in num_estimators:
-        for max_depth in max_depths:
-            random_forest = RandomForestClassifier(n_estimators=n_estimators, n_jobs=-1,
-                                                   max_depth=max_depth, class_weight="balanced",
-                                                   oob_score=True)
-            random_forest.fit(x, y)
-            print 'num_estimators', n_estimators
-            print 'max_depth', max_depth
-            print 'Balanced Out-of-Bag score: %f' % random_forest.oob_score_
+def predict_pr(X, y, model):
 
-            # Plot confusion matrix for Random Forest classifier.
-            # Do any clusters have more mines than the others?
+    plt.figure(figsize=(6, 6))
 
-            cluster_ids = random_forest.predict(x).astype(int)
+    y_hat = model.predict_proba(X)[:, 1]
+    auc_pr = average_precision_score(y, y_hat)
 
-            cluster_ids = pd.DataFrame({
-                "prediction": cluster_ids,
-                "has_mine": y.astype(int),
-                "example_id": range(len(cluster_ids)),
-            })
+    precision, recall, _ = precision_recall_curve(y, y_hat)
+    plt.plot(precision, recall, color='red', lw=3)
 
-            confusion_matrix = pd.pivot_table(
-                cluster_ids,
-                index="has_mine",
-                columns="prediction",
-                values="example_id",
-                fill_value=0,
-                aggfunc=lambda series: series.count())
+    y_hat = np.random.rand(len(X))
+    precision_rand, recall_rand, _ = precision_recall_curve(y, y_hat)
 
-            print confusion_matrix
+    plt.plot(precision_rand, recall_rand, color='blue', lw=3)
 
-            # Plot Precision-Recall Curve of Random Forest
+    plt.axis('equal')
+    plt.ylabel('Precision')
+    plt.xlabel('Recall')
 
-            from sklearn.metrics import precision_recall_curve, average_precision_score, auc
+    plt.title("AUC under PR-Curve: %f%%" % (100 * auc_pr))
+    plt.legend(["RF", "random"])
+    plt.show()
 
-            plt.figure(figsize=(6, 6))
-            plt.axis('equal')
-            plt.ylabel('Precision')
-            plt.xlabel('Recall')
+def predict_confusion(X, y, model):
 
-            # Plot Random Forest's PR-curve
-            y_hat = random_forest.predict_proba(x)
-            print(y_hat.shape)
-            y_hat = random_forest.predict_proba(x)[:, 1]
-            auc_pr = average_precision_score(y, y_hat)
-            precision, recall, decision_boundaries = precision_recall_curve(y, y_hat)
-            plt.plot(precision, recall, color='red', lw=3)
+    cluster_ids = predict(X, model)
 
-            # Plot random classifier's PR-curve
-            y_hat = np.random.rand(len(x))
-            precision_rand, recall_rand, _ = precision_recall_curve(y, y_hat)
-            plt.plot(precision_rand, recall_rand, color='blue', lw=3)
+    cluster_ids = pd.DataFrame({
+                    "prediction": cluster_ids,
+                    "has_mine": y.astype(int),
+                    "example_id": range(len(cluster_ids)),
+                })
 
-            plt.title("AUC under PR-Curve: %f%%" % (100 * auc_pr))
-            plt.legend(["RF", "random"])
-            plt.show()
-            # 0.838454 -- first try
+    confusion_matrix = pd.pivot_table(
+        cluster_ids,
+        index="has_mine",
+        columns="prediction",
+        values="example_id",
+        fill_value=0,
+        aggfunc=lambda series: series.count())
 
-    return random_forest
+    print confusion_matrix
 
-    print 'Constructed %d examples, %d features, %0.3f%% positive' % (x.shape[0], x.shape[1], np.mean(y))
+def train(X, y, num_estimators = 10, max_depth=10):
+    random_forest = RandomForestClassifier(n_estimators=num_estimators, n_jobs=-1,
+                                           max_depth=max_depth, class_weight="balanced",
+                                           oob_score=True)
+
+    return random_forest.fit(X, y)
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
