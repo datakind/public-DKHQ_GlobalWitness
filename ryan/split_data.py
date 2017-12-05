@@ -56,8 +56,8 @@ def split(dataset, output_path, train_frac, val_frac, test_frac, source_id='land
 
 def copy_entry(dataset, mask, mask_metadata, image, image_metadata, source_id):
 
-    dataset.add_image(image_metadata['location_id'], source_id, image, image_metadata)
-    dataset.add_image(image_metadata['location_id'], 'mask', mask, mask_metadata)
+    dataset.add_image(image_metadata['location_id'], source_id, image, image_metadata['metadata'])
+    dataset.add_image(image_metadata['location_id'], 'mask', mask, mask_metadata['metadata'])
 
     return dataset
 
