@@ -8,23 +8,23 @@ from sklearn.metrics import precision_recall_curve, average_precision_score, auc
 from sklearn.externals import joblib
 
 def main(args):
-    X_train, X_val, y_train, y_val = load_data(args.data_path)
+    X_train, X_test, y_train, y_test = load_data(args.data_path)
 
     model = train(X_train, y_train)
 
     export_model(model, args.export_model_path)
 
-    predict_confusion(X_val, y_val, model)
+    predict_confusion(X_test, y_test, model)
     predict_pr(X_train, y_train, model)
 
 def load_data(data_path):
     with np.load(data_path) as f:
         X_train=f['X_train']
-        X_val = f['X_val']
+        X_test = f['X_test']
         y_train = f['y_train']
-        y_val = f['y_val']
+        y_test = f['y_test']
 
-    return X_train, X_val, y_train, y_val
+    return X_train, X_test, y_train, y_test
 
 def export_model(model, model_path):
     joblib.dump(model, model_path)
