@@ -41,11 +41,28 @@ def inference_store(dataset, model, source_id='landsat8', bqa_index=11):
         predictions = np.reshape(predictions, np.shape(bad_idxs))
         predictions[bad_idxs] = -1.0
 
-        plt.subplot(1,2,1)
-        plt.imshow(predictions[1,:,:]>0.7)
-        plt.subplot(1,2,2)
-        plt.imshow(mask>0.7)
+        predictions[predictions[:,:,:]>=0.5]=1
+        predictions[predictions[:,:,:]<0]=0
+        predictions[np.logical_and((predictions[:, :,:] > 0), (predictions[: :,:] <0.7)) ] = 0.5
 
+        n_dates,_,_=np.shape(predictions)
+
+        plt.subplot(1,3,1)
+        plt.imshow(predictions[1,:,:])
+
+        plt.subplot(1,3,2)
+        plt.imshow(bad_idxs[1,:,:])
+
+        plt.subplot(1,3,3)
+        plt.imshow(image[:,:,5,1])
+        # for i in range(8):
+        #     plt.subplot(3,3,i+1)
+        #     plt.imshow(predictions[i,:,:])
+
+        # plt.subplot(3,3,9)
+        # plt.imshow(mask)
+        #
+        plt.clim(0,1)
         plt.show()
         print image_metadata
         dataset.add_image(image_metadata['location_id'], source_id+'_inference', predictions, image_metadata.to_dict())
