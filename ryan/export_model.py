@@ -8,23 +8,22 @@ from sklearn.metrics import precision_recall_curve, average_precision_score, auc
 from sklearn.externals import joblib
 
 def main(args):
-    X_train, X_test, y_train, y_test = load_data(args.data_path)
+    X, y = load_data(args.data_path)
+    X_test, y_test = load_data(args.test_path)
 
-    model = train(X_train, y_train)
+    model = train(X, y)
 
     export_model(model, args.export_model_path)
 
     predict_confusion(X_test, y_test, model)
-    predict_pr(X_train, y_train, model)
+    predict_pr(X_test, y_test, model)
 
 def load_data(data_path):
     with np.load(data_path) as f:
-        X_train=f['X_train']
-        X_test = f['X_test']
-        y_train = f['y_train']
-        y_test = f['y_test']
+        X=f['X']
+        y = f['y']
 
-    return X_train, X_test, y_train, y_test
+    return X, y
 
 def export_model(model, model_path):
     joblib.dump(model, model_path)
@@ -87,9 +86,16 @@ def train(X, y, num_estimators = 10, max_depth=10):
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--data_path',
+        '--train_data_path',
         type=str,
-        help='Data path')
+        help='train preprocessed data file')
+
+    parser.add_argument(
+        '--test_data_path',
+        type=str,
+        help='test preprocessed data file')
+
+
     parser.add_argument(
         '--export_model_path',
         type=str,

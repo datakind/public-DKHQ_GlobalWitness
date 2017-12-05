@@ -26,9 +26,7 @@ def main(args):
     X = image_features[~bad_idxs,:]
     y = masks[~bad_idxs]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    np.savez(args.data_export_path+'/test_train.npz', X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test)
+    np.savez(args.data_export_path, X=X, y=y)
 
 def get_bad_idxs(image_features, bqa):
     cloud_masks = get_cloud_mask(bqa)
