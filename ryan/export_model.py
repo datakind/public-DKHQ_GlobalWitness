@@ -8,8 +8,8 @@ from sklearn.metrics import precision_recall_curve, average_precision_score, auc
 from sklearn.externals import joblib
 
 def main(args):
-    X, y = load_data(args.data_path)
-    X_test, y_test = load_data(args.test_path)
+    X, y = load_data(args.train_data_path)
+    X_test, y_test = load_data(args.test_data_path)
 
     model = train(X, y)
 
