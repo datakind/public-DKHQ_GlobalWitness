@@ -6,17 +6,35 @@ from matplotlib import pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_recall_curve, average_precision_score, auc
 from sklearn.externals import joblib
+from sklearn.model_selection import GridSearchCV
 
 def main(args):
     X, y = load_data(args.train_data_path)
     X_test, y_test = load_data(args.test_data_path)
 
-    model = train(X, y)
+    # X = X[1:100000,:]
+    # y = y[1:100000]
 
-    export_model(model, args.export_model_path)
+    # model = train(X, y)
 
-    predict_confusion(X_test, y_test, model)
-    predict_pr(X_test, y_test, model)
+    param_grid = {
+        'n_estimators':[10, 11],
+        'max_depth':[5, 10]
+    }
+
+    gridsearch(X, y, RandomForestClassifier, param_grid)
+    # export_model(model, args.export_model_path)
+    #
+    # predict_confusion(X_test, y_test, model)
+    # predict_pr(X_test, y_test, model)
+
+
+def gridsearch(X, y, estimator, param_grid, scoring='f1'):
+    clf = GridSearchCV(estimator(), scoring=scoring, param_grid=param_grid)
+    A=clf.fit(X, y)
+
+    print sorted(clf.cv_results_.keys())
+
 
 def load_data(data_path):
     with np.load(data_path) as f:
@@ -76,8 +94,8 @@ def predict_confusion(X, y, model):
 
     print confusion_matrix
 
-def train(X, y, num_estimators = 10, max_depth=10):
-    random_forest = RandomForestClassifier(n_estimators=num_estimators, n_jobs=-1,
+def train(X, y, estimator=RandomForestClassifier, num_estimators = 10, max_depth=10):
+    random_forest = estimator(n_estimators=num_estimators, n_jobs=-1,
                                            max_depth=max_depth, class_weight="balanced",
                                            oob_score=True)
 
