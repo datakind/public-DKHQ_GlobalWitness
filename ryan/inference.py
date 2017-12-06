@@ -2,6 +2,7 @@ import argparse
 from sklearn.externals import joblib
 import storage
 import numpy as np
+import numpy.ma as ma
 import math
 from matplotlib import pyplot as plt
 
@@ -16,9 +17,6 @@ def main(args):
 
     inference_store(dataset, model)
 
-    # images_features, bqas, masks, shapes = load_images_storage(args.data_path)
-
-
 def load_model(model_path):
     model = joblib.load(model_path)
 
@@ -26,7 +24,6 @@ def load_model(model_path):
 
 def inference_store(dataset, model, source_id='landsat8', bqa_index=11):
     for image, image_metadata in dataset.load_images(source_id):
-        mask = dataset.load_image(image_metadata['location_id'], 'mask')
 
         # bqa has shape dates, x, y
         # image_features has shape [-1, n_bands+1]
@@ -39,34 +36,17 @@ def inference_store(dataset, model, source_id='landsat8', bqa_index=11):
         # Does the inference, then reshapes back to our [dates, x, y] coordinates, then fills the bad indices with -1.0
         predictions = inference(model, image_features)
         predictions = np.reshape(predictions, np.shape(bad_idxs))
-        predictions[bad_idxs] = -1.0
+        predictions[bad_idxs] = 0
 
-        predictions[predictions[:,:,:]>=0.5]=1
-        predictions[predictions[:,:,:]<0]=0
-        predictions[np.logical_and((predictions[:, :,:] > 0), (predictions[: :,:] <0.7)) ] = 0.5
+        predictions[predictions[:, :, :] >= 0.5] = 1
+        predictions[predictions[:, :, :] < 0.5] = 0
 
-        n_dates,_,_=np.shape(predictions)
+        predictions=predictions.astype(np.bool)
 
-        plt.subplot(1,3,1)
-        plt.imshow(predictions[1,:,:])
+        predictions_timeagg = np.ma.median(ma.masked_array(predictions, mask=bad_idxs), axis=0).astype(np.bool)
 
-        plt.subplot(1,3,2)
-        plt.imshow(bad_idxs[1,:,:])
-
-        plt.subplot(1,3,3)
-        plt.imshow(image[:,:,5,1])
-        # for i in range(8):
-        #     plt.subplot(3,3,i+1)
-        #     plt.imshow(predictions[i,:,:])
-
-        # plt.subplot(3,3,9)
-        # plt.imshow(mask)
-        #
-        plt.clim(0,1)
-        plt.show()
-        print image_metadata
         dataset.add_image(image_metadata['location_id'], source_id+'_inference', predictions, image_metadata.to_dict())
-
+        dataset.add_image(image_metadata['location_id'], source_id+'_inference_timeagg', predictions_timeagg, image_metadata.to_dict())
 
 def inference(model, image_features):
 
@@ -123,11 +103,9 @@ def get_cloud_mask(bqa):
     cloud_conf = np.zeros_like(bqa).astype(np.int16)
 
     for conf in landsat_confidences:
-        print "Getting confidence", conf
         mask = masker.get_cloud_mask(conf, cumulative=conf_is_cumulative)
         cloud_conf += mask * landsat_confidences[conf]  # multiply each conf by a value
 
-    print "Done conf"
     return cloud_conf
 
 if __name__=="__main__":
