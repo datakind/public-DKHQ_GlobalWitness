@@ -22,7 +22,7 @@ def main(args):
     # model = gridsearch(X, y, RandomForestClassifier, param_grid)
     export_model(model, args.export_model_path)
     
-    predict_confusion(X_test, y_test, model, num_estimators = 300, max_depth=40)
+    predict_confusion(X_test, y_test, model, n_estimators = 300, max_depth=40)
     #predict_pr(X_test, y_test, model)
 
 
@@ -91,8 +91,8 @@ def predict_confusion(X, y, model):
 
     print confusion_matrix
 
-def train(X, y, estimator=RandomForestClassifier, num_estimators = 10, max_depth=10):
-    random_forest = estimator(n_estimators=num_estimators, n_jobs=-1,
+def train(X, y, estimator=RandomForestClassifier, n_estimators = 10, max_depth=10):
+    random_forest = estimator(n_estimators=n_estimators, n_jobs=-1,
                                            max_depth=max_depth, class_weight="balanced",
                                            oob_score=True)
 
