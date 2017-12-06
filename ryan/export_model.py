@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_recall_curve, average_precision_score, auc
 from sklearn.externals import joblib
 from sklearn.model_selection import GridSearchCV
+import json
 
 def main(args):
     X, y = load_data(args.train_data_path)
@@ -18,24 +19,23 @@ def main(args):
     # model = train(X, y)
 
     param_grid = {
-        'n_estimators':[10, 11],
-        'max_depth':[5, 10]
+        'n_estimators':[50, 100, 200, 300],
+        'max_depth':[5, 10, 20, 30, 50, None ]
     }
-
-    gridsearch(X, y, RandomForestClassifier, param_grid)
-    # export_model(model, args.export_model_path)
-    #
-    # predict_confusion(X_test, y_test, model)
-    # predict_pr(X_test, y_test, model)
+    model = gridsearch(X, y, RandomForestClassifier, param_grid)
+    export_model(model, args.export_model_path)
+    
+    predict_confusion(X_test, y_test, model)
+    #predict_pr(X_test, y_test, model)
 
 
 def gridsearch(X, y, estimator, param_grid, scoring='f1'):
-    clf = GridSearchCV(estimator(), scoring=scoring, param_grid=param_grid)
+    clf = GridSearchCV(estimator(), scoring=scoring, param_grid=param_grid, n_jobs=16, verbose=2)
     A=clf.fit(X, y)
 
-    print sorted(clf.cv_results_.keys())
-
-
+    print clf.best_params_
+    print clf.best_score_
+    return A.best_estimator_
 def load_data(data_path):
     with np.load(data_path) as f:
         X=f['X']
