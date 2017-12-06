@@ -13,7 +13,7 @@ def main(args):
     X, y = load_data(args.train_data_path)
     X_test, y_test = load_data(args.test_data_path)
 
-    model = train(X, y)
+    model = train(X, y, n_estimators = 300, max_depth=40)
 
     # param_grid = {
     #     'n_estimators':[50, 100, 200, 300],
@@ -22,7 +22,7 @@ def main(args):
     # model = gridsearch(X, y, RandomForestClassifier, param_grid)
     export_model(model, args.export_model_path)
     
-    predict_confusion(X_test, y_test, model, n_estimators = 300, max_depth=40)
+    predict_confusion(X_test, y_test, model)
     #predict_pr(X_test, y_test, model)
 
 
