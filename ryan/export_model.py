@@ -13,21 +13,27 @@ def main(args):
     X, y = load_data(args.train_data_path)
     X_test, y_test = load_data(args.test_data_path)
 
-    model = train(X, y, n_estimators = 300, max_depth=40)
+  #  model = train(X, y, n_estimators = 300, max_depth=20)
 
-    # param_grid = {
-    #     'n_estimators':[50, 100, 200, 300],
-    #     'max_depth':[5, 10, 20, 30, 50, None ]
-    # }
-    # model = gridsearch(X, y, RandomForestClassifier, param_grid)
-    export_model(model, args.export_model_path)
+    param_grid = {
+        'n_estimators':[50,100,150,200,250],
+        'max_depth':[10,20,30,40,None ],
+        'n_jobs':[-1]
+    }
+    model = gridsearch(X, y, RandomForestClassifier, param_grid,scoring='precision_macro')
+    export_model(model, args.export_model_path+'_precision')
     
+    predict_confusion(X_test, y_test, model)
+
+    model = gridsearch(X, y, RandomForestClassifier, param_grid,scoring='recall_macro')
+    export_model(model, args.export_model_path+'_recall')
+
     predict_confusion(X_test, y_test, model)
     #predict_pr(X_test, y_test, model)
 
 
 def gridsearch(X, y, estimator, param_grid, scoring='f1'):
-    clf = GridSearchCV(estimator(), scoring=scoring, param_grid=param_grid, n_jobs=16, verbose=2)
+    clf = GridSearchCV(estimator(), scoring=scoring, param_grid=param_grid, verbose=2)
     A=clf.fit(X, y)
 
     print clf.best_params_
