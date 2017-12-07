@@ -31,6 +31,7 @@ def inference_store(dataset, model, source_id='landsat8', bqa_index=11):
 
         # This extracts the bqa index in order [dates, x, y]
         bqa = np.transpose(image, [3,0,1,2])[:,:,:,bqa_index]
+
         bad_idxs = get_bad_idxs(bqa)
 
         # Does the inference, then reshapes back to our [dates, x, y] coordinates, then fills the bad indices with -1.0
@@ -38,12 +39,12 @@ def inference_store(dataset, model, source_id='landsat8', bqa_index=11):
         predictions = np.reshape(predictions, np.shape(bad_idxs))
         predictions[bad_idxs] = 0
 
-        predictions[predictions[:, :, :] >= 0.5] = 1
-        predictions[predictions[:, :, :] < 0.5] = 0
-
+        predictions[predictions[:, :, :] >= 0.3] = 1
+        predictions[predictions[:, :, :] < 0.3] = 0
         predictions=predictions.astype(np.bool)
 
-        predictions_timeagg = np.ma.median(ma.masked_array(predictions, mask=bad_idxs), axis=0).astype(np.bool)
+        # predictions_timeagg = np.median(predictions, axis=0)
+        predictions_timeagg = ma.median(ma.masked_array(predictions, mask=bad_idxs), axis=0).astype(np.bool)
 
         dataset.add_image(image_metadata['location_id'], source_id+'_inference', predictions, image_metadata.to_dict())
         dataset.add_image(image_metadata['location_id'], source_id+'_inference_timeagg', predictions_timeagg, image_metadata.to_dict())
