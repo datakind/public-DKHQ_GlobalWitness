@@ -12,7 +12,6 @@ import json
 def main(args):
     X, y = load_data(args.train_data_path)
     X_test, y_test = load_data(args.test_data_path)
-
   #  model = train(X, y, n_estimators = 300, max_depth=20)
 
     param_grid = {
