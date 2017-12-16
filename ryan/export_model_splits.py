@@ -22,7 +22,7 @@ def main(args):
     X,y,groups = group_split(args.splits_path)
 
     print(np.shape(X), np.shape(y), np.shape(groups))
-    model = gridsearch(X, y, groups, RandomForestClassifier, param_grid, scoring='precision_macro', njobs=args.njobs)
+    model = gridsearch(X, y, groups, RandomForestClassifier, param_grid, scoring='precision_macro', n_jobs=args.n_jobs)
 
 def group_split(splits):
     X=[]
@@ -56,18 +56,18 @@ def jsonify(data):
         json_data[key] = value
     return json_data
 
-def gridsearch(X, y, groups, estimator, param_grid, scoring='f1', njobs=1):
+def gridsearch(X, y, groups, estimator, param_grid, scoring='f1', n_jobs=1):
     gkf = list(GroupKFold(n_splits=3).split(X, y, groups))
 
     # testing (kt)
     scoring = ['average_precision', 'precision', 'recall', 'accuracy', 'f1', 'roc_auc']
 
 
-    clf = GridSearchCV(estimator(), scoring=scoring, cv=gkf, param_grid=param_grid, verbose=2, refit=False, njobs=njobs)
+    clf = GridSearchCV(estimator(), scoring=scoring, cv=gkf, param_grid=param_grid, verbose=2, refit=False, n_jobs=n_jobs)
     A = clf.fit(X,y)
 
 
-    print jsonify(clf.cv_results_) #best_params_
+    print json.dumps(jsonify(clf.cv_results_)) #best_params_
     #print clf.best_score_
     return #A.best_estimator_
 
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         help='Model Export Path')
 
     parser.add_argument(
-        '--njobs',
+        '--n_jobs',
         type=int,
         default=1,
         help='Number of jobs to run the gridsearch '
