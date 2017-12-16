@@ -15,8 +15,8 @@ from sklearn.model_selection import GroupKFold
 def main(args):
 
     param_grid = {
-        'n_estimators': [5],#range(50, 500, 50),
-        'max_depth': [4],# range(5, 40, 5) + [None],
+        'n_estimators': range(50, 500, 50),
+        'max_depth': range(5, 40, 5) + [None],
         'n_jobs': [-1]
     }
     X,y,groups = group_split(args.splits_path)
@@ -70,7 +70,7 @@ def gridsearch(X, y, groups, estimator, param_grid, scoring='f1', n_jobs=1):
 
     data_to_json = jsonify(clf.cv_results_) #best_params_
 
-    with open('data.txt', 'w') as outfile:
+    with open('params_eval.json', 'w') as outfile:
         json.dump(data_to_json, outfile)
 
     return #A.best_estimator_
