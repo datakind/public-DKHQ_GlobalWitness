@@ -16,13 +16,13 @@ def main(args):
 
     param_grid = {
         'n_estimators': [5, 6],
-        'max_depth': [10, 15, 20],
+        'max_depth': [2], # 10, 15, 20
         'n_jobs': [-1]
     }
     X,y,groups = group_split(args.splits_path)
 
     print(np.shape(X), np.shape(y), np.shape(groups))
-    model = gridsearch(X, y, groups, RandomForestClassifier, param_grid, scoring='precision_macro')
+    model = gridsearch(X, y, groups, RandomForestClassifier, param_grid, scoring='precision_macro', njobs=args.njobs)
 
 def group_split(splits):
     X=[]
@@ -41,15 +41,35 @@ def group_split(splits):
 
     return np.concatenate(X), np.concatenate(y), np.concatenate(groups)
 
-def gridsearch(X, y, groups, estimator, param_grid, scoring='f1'):
+
+def jsonify(data):
+    json_data = dict()
+    for key, value in data.iteritems():
+        if isinstance(value, list):  # for lists
+            value = [jsonify(item) if isinstance(item, dict) else item for item in value]
+        if isinstance(value, dict):  # for nested lists
+            value = jsonify(value)
+        if isinstance(key, int):  # if key is integer: > to string
+            key = str(key)
+        if type(value).__module__ == 'numpy':  # if value is numpy.*: > to python list
+            value = value.tolist()
+        json_data[key] = value
+    return json_data
+
+def gridsearch(X, y, groups, estimator, param_grid, scoring='f1', njobs=1):
     gkf = list(GroupKFold(n_splits=3).split(X, y, groups))
 
-    clf = GridSearchCV(estimator(), scoring=scoring, cv=gkf, param_grid=param_grid, verbose=2)
+    # testing (kt)
+    scoring = ['average_precision', 'precision', 'recall', 'accuracy', 'f1', 'roc_auc']
+
+
+    clf = GridSearchCV(estimator(), scoring=scoring, cv=gkf, param_grid=param_grid, verbose=2, refit=False, njobs=njobs)
     A = clf.fit(X,y)
 
-    print clf.best_params_
-    print clf.best_score_
-    return A.best_estimator_
+
+    print jsonify(clf.cv_results_) #best_params_
+    #print clf.best_score_
+    return #A.best_estimator_
 
 
 def load_data(data_path):
@@ -132,4 +152,11 @@ if __name__ == '__main__':
         '--export_model_path',
         type=str,
         help='Model Export Path')
+
+    parser.add_argument(
+        '--njobs',
+        type=int,
+        default=1,
+        help='Number of jobs to run the gridsearch '
+    )
     main(parser.parse_args())
