@@ -53,6 +53,8 @@ def jsonify(data):
             key = str(key)
         if type(value).__module__ == 'numpy':  # if value is numpy.*: > to python list
             value = value.tolist()
+        if type(value).__module__ == 'numpy.ma.core':
+            value = value.tolist()
         json_data[key] = value
     return json_data
 
