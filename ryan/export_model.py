@@ -12,22 +12,22 @@ import json
 def main(args):
     X, y = load_data(args.train_data_path)
     X_test, y_test = load_data(args.test_data_path)
-  #  model = train(X, y, n_estimators = 300, max_depth=20)
+    model = train(X, y, n_estimators = 300, max_depth=20)
 
-    param_grid = {
-        'n_estimators':[50,100,150,200,250],
-        'max_depth':[10,20,30,40,None ],
-        'n_jobs':[-1]
-    }
-    model = gridsearch(X, y, RandomForestClassifier, param_grid,scoring='precision_macro')
-    export_model(model, args.export_model_path+'_precision')
+    # param_grid = {
+    #     'n_estimators':[50,100,150,200,250],
+    #     'max_depth':[10,20,30,40,None ],
+    #     'n_jobs':[-1]
+    # }
+    # model = gridsearch(X, y, RandomForestClassifier, param_grid,scoring='precision_macro')
+    # export_model(model, args.export_model_path+'_precision')
     
     predict_confusion(X_test, y_test, model)
 
-    model = gridsearch(X, y, RandomForestClassifier, param_grid,scoring='recall_macro')
-    export_model(model, args.export_model_path+'_recall')
+    # model = gridsearch(X, y, RandomForestClassifier, param_grid,scoring='recall_macro')
+    # export_model(model, args.export_model_path+'_recall')
 
-    predict_confusion(X_test, y_test, model)
+    # predict_confusion(X_test, y_test, model)
     #predict_pr(X_test, y_test, model)
 
 
