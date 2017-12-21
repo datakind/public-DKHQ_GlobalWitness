@@ -15,8 +15,9 @@ from sklearn.model_selection import GroupKFold
 def main(args):
 
     param_grid = {
-        'n_estimators': range(50, 500, 50),
-        'max_depth': range(5, 40, 5) + [None],
+        'n_estimators': range(400, 551, 50),
+        'max_depth': range(40, 60, 5) + [None],
+        'min_sample_leaf': [1, 2, 10, 50, 75, 100],
         'n_jobs': [-1]
     }
     X,y,groups = group_split(args.splits_path)
