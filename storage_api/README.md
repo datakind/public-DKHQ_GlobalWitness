@@ -68,3 +68,11 @@ for image, image_metadata in dataset.load_images("landsat8_32day"):
 ```
 
 [example_notebook]: notebooks/Storage API Demo.ipynb
+
+# Troubleshooting
+
+## I see `RuntimeError: error decompressing the last chunk (error code: -1)`
+
+This error occurs when attempting to load a `bcolz` array with v1.0.0 when it
+was written with v1.1.2. See [this Github
+Issue](https://github.com/Blosc/bcolz/issues/354) for a solution for Anaconda.

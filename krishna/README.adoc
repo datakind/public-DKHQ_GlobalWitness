@@ -24,25 +24,25 @@ krishna bhogaonker <cyclotomiq@gmail.com>
 
 == Mining Data Acquisition Package
 
-This is a python package that provides a simple (hopefully?) API to google-earth-engine to facilitate the download of satellite imagery. The user will input the imagery collection of interest, the beginning and end dates, and a file of mine locations. The package will query the appropriate imagery from earth engine and download the GeoTiff images to the indicated folder.
+This is a python package that provides a simple API to google-earth-engine to facilitate the download of satellite imagery. The user will input the imagery collection of interest, the beginning and end dates, and a file of mine locations. The package will query the appropriate imagery from earth engine and download the GeoTiff images to the indicated folder.
 This package will also facilitate download of relevant vector or raster layers necessary to create features for the mining model.
 
-Note that credentials to access Earth Engine must be obtained separately.
+Note that credentials to access Earth Engine must be obtained separately through a request to Google.
 
-The link to the respository is:
+== Point Imagery Data Requests
 
-https://github.com/krishnab-datakind/mining-data-acquisition[Data Acqisition Package]
+A Point Imagery Data request refers to a set of point latitude/longitude locations for which imagery is requested. The path to the shapefile or GeoJSON file is provided with the `data-gather` request.
 
-Current Status (10/23/2017): pre-alpha
+[TODO fill in details] 
 
-The basic Request and Request builder classes have been implemented. The next step is to write the handler classes. Once that is done and working, the package will move to testing phase.
+The Help screen for the package provides details about how to execute downloads of the data. 
 
-== Import Imagery to Postgis Database Package
 
-This is a Rust/Go package that will take imagery and data layers downloaded by the Mining Data Acquisition Package above and load it into a Postgres/Postgis database. 
 
-Current Status (10/23/2017): not yet started
+Current Status (12/08/2017): pre-alpha
 
-Working to finish the Mining Data Acquisition Package first.
+The basic request for point imagery data is completed and working. There are some issues with the links since migrating to the full github repo and reorganizing some files. Working to fix those. Also working to fix some of the issues with the image metadata provided for each image. 
+
+
 
 
