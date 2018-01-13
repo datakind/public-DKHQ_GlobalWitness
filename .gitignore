@@ -9,3 +9,7 @@
 # Python setuptools
 *.egg
 *.egg-info
+
+# setup.py
+build
+dist
