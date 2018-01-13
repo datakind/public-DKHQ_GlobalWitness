@@ -30,6 +30,7 @@ def merge_dicts(*args):
         result.update(arg)
     return result
 
+
 def with_retries(name, thunk, num_retries, timeout):
     err = gevent.Timeout()
     for i in range(num_retries):

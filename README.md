@@ -6,3 +6,49 @@ Shared code for Mining Detection. Ask duckworthd@gmail.com for details.
 
 This repo contains one folder per user and subproject. See README.md files in
 each directory for details and points of contact.
+
+## Workflow
+
+1. Install packages.
+
+Follow instructions in `features_api`, `storage_api`, and `visualization_api`.
+These libraries provide the core tools for downloading satellite imagery,
+serializing it to disk, and visualizing it.
+
+2. Download training data.
+
+The following command downloads satellite imagery and rasterized "masks"
+indicating where mines are located. Results are stored in `/tmp/ipis`.
+
+```shell
+$ python -m bin.download_ipis --base_dir="/tmp/ipis"
+```
+
+3. Train model.
+
+The following command trains a random forest model and serializes it to disk. The model is trained to predict if a mine lies under a pixel or not.
+
+```shell
+TODO(Ryan, Katie)
+```
+
+4. Make predictions. Store to disk.
+
+The following command uses a stored model to make predictions. Predictions are
+stored to disk alongside satellite imagery.
+
+```shell
+TODO(Ryan, Katie)
+```
+
+5. Visualize predictions.
+
+Visualizations are presented in Jupyter notebook. Open the notebook with the
+following command,
+
+```shell
+$ jupyter notebook "visualization_api/notebooks/Visualization API Demo.ipynb"
+```
+
+Follow the `TODO` statements in the notebook to apply visualize predictions
+made in the previous step.

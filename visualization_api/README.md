@@ -2,7 +2,7 @@
 
 **Author**: duckworthd@
 
-**Last Edit**: 2017 Nov 18
+**Last Edit**: 2018 Jan 13
 
 API for visualizing satellite imagery.
 
@@ -15,29 +15,28 @@ $ git clone git@github.com:datakind/ON-MiningDetection.git github
 $ cd github/visualization_api
 ```
 
-1. Activate an Anaconda environment
+2. Activate an Anaconda environment
+
+If you do not yet have Anaconda installed, follow the instructions for your
+platform [here](https://conda.io/docs/user-guide/install/linux.html).
 
 ```shell
-$ conda create --name mining_detection
-$ source activate mining_detection
+$ conda create --name mining_detection python=2.7
+$ conda activate mining_detection
 ```
 
-1. Install dependencies with `conda`,
+3. Install dependencies with `conda`,
 
 ```shell
 $ conda install bcolz folium jupyter matplotlib pandas -c conda-forge
 ```
 
-1. Install `storage`
+4. Install Storage API (see instructions in `../storage_api`).
+
+5. Install library in environment.
 
 ```shell
-$ cd ../storage_api
-$ python setup.py install
-```
-
-1. Install library in environment.
-
-```shell
+$ python setup.py test
 $ python setup.py install
 ```
 
