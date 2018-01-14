@@ -22,7 +22,6 @@ def main(args):
     }
     X,y,groups = group_split(args.splits_path)
 
-    print(np.shape(X), np.shape(y), np.shape(groups))
     model = gridsearch(X, y, groups, RandomForestClassifier, param_grid, scoring='precision_macro', n_jobs=args.n_jobs)
 
 def group_split(splits):
@@ -152,11 +151,6 @@ if __name__ == '__main__':
         '--splits_path',
         type=str,
         help='path to split file', action='append')
-
-    parser.add_argument(
-        '--export_model_path',
-        type=str,
-        help='Model Export Path')
 
     parser.add_argument(
         '--n_jobs',
