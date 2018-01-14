@@ -27,7 +27,7 @@ This is because pixels from the same site are likely correlated. If they are in 
 and use the fact that it has seen similar data before to make a prediction.
 
 
-##Running
+## Running
 First we should make train/test/validation splits using split_data.py. After that, preprocess the data into 
 .npz format with export_data.py, then train and export a model with export_model.py
 
