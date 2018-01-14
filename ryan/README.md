@@ -25,3 +25,9 @@ would indicate that there was a mine here.
 fractions. The split occurs along site boundaries, so different pixels from the same site will be put into the same split.
 This is because pixels from the same site are likely correlated. If they are in different splits, the model can cheat
 and use the fact that it has seen similar data before to make a prediction.
+
+
+##Running
+First we should make train/test/validation splits using split_data.py. After that, preprocess the data into 
+.npz format with export_data.py, then train and export a model with export_model.py
+
