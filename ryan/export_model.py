@@ -10,25 +10,32 @@ from sklearn.model_selection import GridSearchCV
 import json
 
 def main(args):
-    X, y = load_data(args.train_data_path)
-    X_test, y_test = load_data(args.test_data_path)
-    model = train(X, y, n_estimators = 300, max_depth=20)
 
-    # param_grid = {
-    #     'n_estimators':[50,100,150,200,250],
-    #     'max_depth':[10,20,30,40,None ],
-    #     'n_jobs':[-1]
-    # }
-    # model = gridsearch(X, y, RandomForestClassifier, param_grid,scoring='precision_macro')
-    # export_model(model, args.export_model_path+'_precision')
+    X=[]
+    y=[]
+    for path in args.train_data_path:
+        temp_X, temp_y = load_data(path)
+
+        X.append(temp_X)
+        y.append(temp_y)
+
+        print(np.shape(temp_X))
+        print(np.shape(temp_y))
+
+    X=np.concatenate(X)
+    y=np.concatenate(y)
+
+    print(np.shape(X))
+    X_test, y_test = load_data(args.test_data_path)
+    model = train(X, y, n_estimators = 200, max_depth=35)
     
     predict_confusion(X_test, y_test, model)
 
     # model = gridsearch(X, y, RandomForestClassifier, param_grid,scoring='recall_macro')
-    # export_model(model, args.export_model_path+'_recall')
+    export_model(model, args.export_model_path)
 
     # predict_confusion(X_test, y_test, model)
-    #predict_pr(X_test, y_test, model)
+    predict_pr(X_test, y_test, model)
 
 
 def gridsearch(X, y, estimator, param_grid, scoring='f1'):
@@ -108,7 +115,7 @@ if __name__=='__main__':
     parser.add_argument(
         '--train_data_path',
         type=str,
-        help='train preprocessed data file')
+        help='train preprocessed data file', nargs='+')
 
     parser.add_argument(
         '--test_data_path',
