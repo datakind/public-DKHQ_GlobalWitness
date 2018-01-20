@@ -1,4 +1,4 @@
-# Ryan Vilim's repository
+# Scripts associated with data preparation, model training, inference and evaluation.
 
 ## Description of Files
 
