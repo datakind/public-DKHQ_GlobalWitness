@@ -24,12 +24,21 @@ indicating where mines are located. Results are stored in `/tmp/ipis`.
 $ python -m bin.download_ipis --base_dir="/tmp/ipis"
 ```
 
+3. Process data.
+
+This script ingests the training data, generates features for the model,
+removes clouded datapoints, and saves the resultant vectors in a .npz (gzipped numpy) array.
+
+```shell
+$ python ./model/export_data.py --data_export_path /path/to/processed/data --data_input_path /path/to/downloaded/training/data
+```
+
 3. Train model.
 
 The following command trains a random forest model and serializes it to disk. The model is trained to predict if a mine lies under a pixel or not.
 
 ```shell
-python ./model/export_model.py --train_data_path /path/to/processed/data/ --test_data_path /path/to/processed/test/data --export_model_path /path/to/dir
+$ python ./model/export_model.py --train_data_path /path/to/processed/data/ --test_data_path /path/to/processed/test/data --export_model_path /path/to/dir
 ```
 
 4. Make predictions. Store to disk.
