@@ -33,7 +33,7 @@ removes clouded datapoints, and saves the resultant vectors in a .npz (gzipped n
 $ python ./model/export_data.py --data_export_path /path/to/processed/data --data_input_path /path/to/downloaded/training/data
 ```
 
-3. Train model.
+4. Train model.
 
 The following command trains a random forest model and serializes it to disk. The model is trained to predict if a mine lies under a pixel or not.
 
@@ -41,7 +41,7 @@ The following command trains a random forest model and serializes it to disk. Th
 $ python ./model/export_model.py --train_data_path /path/to/processed/data/ --test_data_path /path/to/processed/test/data --export_model_path /path/to/dir
 ```
 
-4. Make predictions. Store to disk.
+5. Make predictions. Store to disk.
 
 The following command uses a stored model to make predictions. Predictions are
 stored to disk alongside satellite imagery.
@@ -50,7 +50,7 @@ stored to disk alongside satellite imagery.
 python ./model/inference.py --data_path /path/to/data --model_path /path/to/model
 ```
 
-5. Visualize predictions.
+6. Visualize predictions.
 
 Visualizations are presented in Jupyter notebook. Open the notebook with the
 following command,
