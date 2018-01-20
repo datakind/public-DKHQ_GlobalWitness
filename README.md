@@ -55,9 +55,9 @@ python ./model/inference.py --data_path /path/to/data --model_path /path/to/mode
 The --data_path option is a dataset in the Dataset API format. This command makes predictions on each image and saves 
 the results to the same dataset. This adds two new source ids to the dataset
 'landsat_inference_timeagg' and 'landsat_inference'. 'landsat_inference_timeagg' aggregates the predictions for the same 
-pixel location in time by taking the majority prediction across time. 'landsat_inference' stores each prediction in time as an extra
-dimension in the output array. This means that the image in the landsat_inference_timeagg source has shape \[n_x, n_y\]
-while the image in the landsat_inference has shape \[n_time, n_x, n_y\].
+pixel location in time by taking the majority prediction across time. The 'landsat_inference' source has predictions of
+the same location at different times stored as an extra dimension in the image array. This means that the image in the 
+landsat_inference_timeagg source has shape \[n_x, n_y\] while the image in the landsat_inference has shape \[n_time, n_x, n_y\].
 
 6. Visualize predictions.
 
