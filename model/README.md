@@ -26,6 +26,8 @@ fractions. The split occurs along site boundaries, so different pixels from the 
 This is because pixels from the same site are likely correlated. If they are in different splits, the model can cheat
 and use the fact that it has seen similar data before to make a prediction.
 
+- __get_stats_inference.py__: Given a dataset contianing output from a trained model, this function contains some 
+scripts to evaluate the precision and recall of predictions.
 
 ## Running
 First we should make train/test/validation splits using split_data.py. After that, preprocess the data into 
