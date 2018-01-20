@@ -26,7 +26,7 @@ $ python -m bin.download_ipis --base_dir="/tmp/ipis"
 
 3. Process data.
 
-This script ingests a folder of sattelite images and masks which are stored in dataset api
+This script ingests a folder of satellite images and masks which are stored in dataset api
 then features for the model,
 removes clouded datapoints, and saves the resultant vectors in a .npz (gzipped numpy) array.
 
@@ -46,16 +46,18 @@ $ python ./model/export_model.py --train_data_path /path/to/processed/data.npz -
 
 5. Make predictions. Store to disk.
 
-The following command uses a stored model to make predictions. The data_path takes a dataset in the Dataset API format
-, makes predictions on each image and saves the results to the same dataset. This adds two new source ids to the dataset
-'landsat_inference_timeagg' and 'landsat_inference'. 'landsat_inference_timeagg' aggregates the predictions for the same 
-pixel location in time by taking the majority prediction. 'landsat_inference' stores each prediction in time as an extra
-dimension in the output array. This means that the image in the landsat_inference_timeagg source has shape \[n_x, n_y\]
-while the image in the landsat_inference has shape \[n_time, n_x, n_y\]. 
+The following command uses a stored model to make predictions. 
 
 ```shell
 python ./model/inference.py --data_path /path/to/data --model_path /path/to/model
 ```
+
+The --data_path option is a dataset in the Dataset API format. This command makes predictions on each image and saves 
+the results to the same dataset. This adds two new source ids to the dataset
+'landsat_inference_timeagg' and 'landsat_inference'. 'landsat_inference_timeagg' aggregates the predictions for the same 
+pixel location in time by taking the majority prediction across time. 'landsat_inference' stores each prediction in time as an extra
+dimension in the output array. This means that the image in the landsat_inference_timeagg source has shape \[n_x, n_y\]
+while the image in the landsat_inference has shape \[n_time, n_x, n_y\].
 
 6. Visualize predictions.
 
