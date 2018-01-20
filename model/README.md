@@ -1,5 +1,7 @@
 # Scripts associated with data preparation, model training, inference and evaluation.
 
+Note: All these scripts require the Storage API to be installed.
+ 
 ## Description of Files
 
 - __export_data.py__: Takes a set of data in the Storage API format, generates features for the model, removes clouds
