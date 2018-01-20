@@ -60,4 +60,6 @@ $ jupyter notebook "visualization_api/notebooks/Visualization API Demo.ipynb"
 ```
 
 Follow the `TODO` statements in the notebook to apply visualize predictions
-made in the previous step.
+made in the previous step. By default, predictions generated via 
+ model/inference.py are stored in the 'landsat8_inference_timeagg' source id
+ of the dataset.
