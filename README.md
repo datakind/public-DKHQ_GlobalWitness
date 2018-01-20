@@ -29,7 +29,7 @@ $ python -m bin.download_ipis --base_dir="/tmp/ipis"
 The following command trains a random forest model and serializes it to disk. The model is trained to predict if a mine lies under a pixel or not.
 
 ```shell
-TODO(Ryan, Katie)
+python ./model/export_model.py --train_data_path /path/to/processed/data/ --test_data_path /path/to/processed/test/data --export_model_path /path/to/dir
 ```
 
 4. Make predictions. Store to disk.
@@ -38,7 +38,7 @@ The following command uses a stored model to make predictions. Predictions are
 stored to disk alongside satellite imagery.
 
 ```shell
-TODO(Ryan, Katie)
+python ./model/inference.py --data_path /path/to/data --model_path /path/to/model
 ```
 
 5. Visualize predictions.

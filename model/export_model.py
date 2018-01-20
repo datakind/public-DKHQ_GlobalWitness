@@ -7,7 +7,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_recall_curve, average_precision_score, auc
 from sklearn.externals import joblib
 from sklearn.model_selection import GridSearchCV
-import json
 
 def main(args):
 
