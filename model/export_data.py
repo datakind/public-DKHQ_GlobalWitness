@@ -1,11 +1,6 @@
 import argparse
-import time
 import numpy as np
-import pandas as pd
-import tensorflow as tf
-import sonnet as snt
 import seaborn as sns; sns.set_style("whitegrid")
-from matplotlib import pyplot as plt
 import mining; reload(mining)
 import math
 
@@ -13,7 +8,6 @@ import storage
 
 from pymasker import LandsatMasker
 from pymasker import LandsatConfidence
-from sklearn.model_selection import train_test_split
 
 CLOUD_THRESHOLD = 3
 

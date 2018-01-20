@@ -22,7 +22,7 @@ def load_model(model_path):
 
     return model
 
-def inference_store(dataset, model, source_id='landsat8', bqa_index=11):
+def inference_store(dataset, model, source_id='landsat8', bqa_index=11, get_stats=False):
     for image, image_metadata in dataset.load_images(source_id):
 
         # bqa has shape dates, x, y
@@ -74,6 +74,7 @@ def get_image_features(image, image_metadata, bqa_index=11):
 
     image_features = np.reshape(image_databands, (n_x * n_y * n_dates, n_bands))
     image_features = np.hstack([image_features, dates])
+
 
     return image_features
 

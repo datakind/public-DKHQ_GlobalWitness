@@ -6,20 +6,37 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import precision_recall_curve, average_precision_score, auc, roc_curve, roc_auc_score
 from sklearn.externals import joblib
 import time
-
+import storage
 
 def main(args):
-    model = load_model(args.model_path)
-    X_test, y_test = load_data(args.test_data_path)
+    source_id='landsat8'
+    dataset = storage.DiskDataset(args.storage_path)
 
+    predictions=[]
 
-    start = time.time()
-    predict_confusion(X_test,y_test,model)
-    end = time.time()
-    print(end - start)
-    # predict_pr(X_test,y_test, model)
-    # predict_roc(X_test, y_test, model)
+    for image, image_metadata in dataset.load_images(source_id):
+        mask = dataset.load_image(image_metadata['location_id'], 'mask')
+        prediction = dataset.load_image(image_metadata['location_id'], source_id+'_inference_timeagg')
 
+        assert mask.shape==prediction.shape, "Error, prediciton and mask not the same size."
+
+        predictions.append(pd.DataFrame({
+                        "prediction": np.reshape(mask, (mask.size,)),
+                        "has_mine": np.reshape(prediction, (prediction.size, ))
+                    }))
+
+    predictions=pd.concat(predictions)
+    predictions['example_id'] = range(len(predictions))
+
+    confusion_matrix = pd.pivot_table(
+        predictions,
+        index="has_mine",
+        columns="prediction",
+        values="example_id",
+        fill_value=0,
+        aggfunc=lambda series: series.count())
+
+    print(confusion_matrix)
 def load_data(data_path):
     with np.load(data_path) as f:
         X=f['X']
@@ -109,13 +126,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--test_data_path',
+        '--storage_path',
         type=str,
         help='test preprocessed data file')
 
-
-    parser.add_argument(
-        '--model_path',
-        type=str,
-        help='Model Export Path')
     main(parser.parse_args())
