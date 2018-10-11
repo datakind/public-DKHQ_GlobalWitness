@@ -1,6 +1,6 @@
 # Team Repository for DataKind's Mining Detection in the DRC
 
-Shared code for Mining Detection. Ask duckworthd@gmail.com for details.
+Shared code for Mining Detection. Follow up with caitlin@datakind.org with questions for the project team / about the project materials. 
 
 ## Structure
 
