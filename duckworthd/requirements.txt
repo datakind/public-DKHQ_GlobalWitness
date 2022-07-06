@@ -21,7 +21,7 @@ functools32==3.2.3.post2
 GDAL==2.2.1
 google-api-python-client==1.6.3
 h5py==2.7.1
-html5lib==0.9999999
+html5lib==0.999999999
 httplib2==0.10.3
 idna==2.5
 invoke==0.16.3
